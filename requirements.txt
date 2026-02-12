@@ -1,0 +1,7 @@
+# MIDI Remaster Lab - Python dependencies
+# Install from repo root:  pip install -r requirements.txt
+# This pulls in the backend API dependencies (see backend/requirements.txt).
+# Frontend:  cd frontend && npm install  (Node.js required)
+# ML (optional):  see backend/requirements.txt and MLtraining/requirements_local.txt
+
+-r backend/requirements.txt

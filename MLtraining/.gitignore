@@ -1,0 +1,16 @@
+# MusicGen model checkpoints (large files)
+*.pt
+*.pth
+*.ckpt
+
+# Training outputs
+logs/
+checkpoints/
+outputs/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.pyc

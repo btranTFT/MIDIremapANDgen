@@ -1,0 +1,16 @@
+# Backend Python dependencies (Python 3.11 recommended for ML)
+# Install:  pip install -r requirements.txt
+# FluidSynth and LAME must be on system PATH (see README).
+
+# Core API
+fastapi>=0.100.0
+uvicorn>=0.20.0
+python-multipart>=0.0.6
+mido>=1.3.0
+
+# Optional: ML generation (/api/remaster_ml). Use Python 3.11.
+# Uncomment and install after core deps, or use MLtraining/requirements_local.txt:
+#   torch>=2.0.0
+#   torchaudio>=2.0.0
+#   audiocraft  (or: pip install git+https://github.com/facebookresearch/audiocraft.git)
+# GPU: install PyTorch with CUDA from https://pytorch.org/get-started/locally/
