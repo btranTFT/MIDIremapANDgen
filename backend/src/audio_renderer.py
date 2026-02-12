@@ -89,3 +89,35 @@ def check_dependencies() -> dict[str, bool]:
         deps["lame"] = False
     return deps
 
+
+def get_tool_versions() -> dict[str, str]:
+    """Return version strings for fluidsynth and lame when available."""
+    out: dict[str, str] = {"fluidsynth": "unknown", "lame": "unknown"}
+    try:
+        r = subprocess.run(
+            ["fluidsynth", "--version"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        text = (r.stdout or r.stderr or "").strip()
+        if text:
+            out["fluidsynth"] = text.split("\n")[0].strip() or "unknown"
+    except Exception:
+        pass
+    try:
+        r = subprocess.run(
+            ["lame", "--version"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        text = (r.stdout or r.stderr or "").strip()
+        if text:
+            out["lame"] = text.split("\n")[0].strip() or "unknown"
+    except Exception:
+        pass
+    return out
+

@@ -56,3 +56,7 @@ MLtraining/.ipynb_checkpoints/
 # Logs
 *.log
 logs/
+
+# Cursor IDE files (not part of repo)
+.cursorignore
+.cursor/
