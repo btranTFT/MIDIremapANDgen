@@ -1,0 +1,58 @@
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+nul
+
+# Temp / artifacts
+tmpclaude-*
+*.tmp
+*.temp
+temp_uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv_ml/
+.venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+*.egg
+
+# Backend
+backend/temp_uploads/
+backend/*.wav
+backend/*.mid
+backend/tmp_*
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ML / training
+*.pt
+*.pth
+*.ckpt
+MLtraining/logs/
+MLtraining/checkpoints/
+MLtraining/outputs/
+MLtraining/.ipynb_checkpoints/
+
+# Env and secrets
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+logs/
