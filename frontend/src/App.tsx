@@ -126,13 +126,22 @@ function App() {
         });
       }, 2000);
 
+      // Debug logging: log request details
+      console.log('[Remaster] Starting request:', {
+        endpoint,
+        mode,
+        soundfont,
+        fileSize: file.size,
+        timeoutMs,
+      });
+
       const data = await request<
         RemasterResult & {
           logs?: Array<{
-            ts: string;
-            level: string;
-            step: string;
-            message: string;
+            ts?: string;
+            level?: string;
+            step?: string;
+            message?: string;
             debug?: string;
           }>;
         }
@@ -142,22 +151,41 @@ function App() {
         timeoutMs,
       });
 
+      // Debug logging: log response shape for troubleshooting
+      console.log('[Remaster] Response received:', {
+        hasRequestId: !!data.request_id,
+        hasMidiUrl: !!data.midi_url,
+        hasAudioUrl: !!data.audio_url,
+        hasLogs: Array.isArray(data.logs),
+        logsCount: Array.isArray(data.logs) ? data.logs.length : 0,
+        hasClassifications: !!data.classifications,
+        hasMetadata: !!data.metadata,
+      });
+
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
       setProgress(90);
 
+      // Ensure required fields exist before setting result
+      if (!data.request_id) {
+        console.error('[Remaster] Response missing request_id:', data);
+        throw new Error('Invalid response: missing request_id');
+      }
+
       setResult(data);
       setProgress(100);
       if (Array.isArray(data.logs) && data.logs.length > 0) {
-        const mapped = data.logs.map(ev => ({
-          ts: ev.ts,
-          message: ev.message,
-          level: (ev.level === 'warn' ? 'warn' : ev.level === 'error' ? 'error' : 'info') as LogEntry['level'],
-          step: ev.step,
-          debug: ev.debug,
-        }));
+        const mapped = data.logs
+          .filter(ev => ev && typeof ev.message === 'string')
+          .map(ev => ({
+            ts: ev.ts ?? '',
+            message: ev.message ?? 'Unknown message',
+            level: (ev.level === 'warn' ? 'warn' : ev.level === 'error' ? 'error' : 'info') as LogEntry['level'],
+            step: ev.step ?? '',
+            debug: ev.debug,
+          }));
         setLogs(prev => [...prev, ...mapped]);
         addLog('Remaster complete.', 'success');
       } else {
@@ -172,7 +200,13 @@ function App() {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
+      // Debug logging: log error details
+      console.error('[Remaster] Request failed:', err);
+      if (err instanceof Error) {
+        console.error('[Remaster] Error stack:', err.stack);
+      }
       const display = toErrorDisplay(err);
+      console.log('[Remaster] Error display:', display);
       setError(display);
       addLog(display.detail, 'error', undefined, display.debug);
       setProgress(0);
