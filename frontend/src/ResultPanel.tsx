@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { head } from './api';
 
@@ -328,7 +328,7 @@ export function ResultPanel({
                           <dd>
                             <ul className="provenance__tools">
                               {Object.entries(result.metadata.tool_versions).map(([k, v]) => (
-                                <li key={k}>{k}: {v}</li>
+                                <li key={k}>{k}: {String(v ?? '')}</li>
                               ))}
                             </ul>
                           </dd>

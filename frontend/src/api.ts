@@ -113,19 +113,31 @@ export async function request<T>(
       let code: string | undefined;
       let headline: string | undefined;
       let nextStep: string | undefined;
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      
       try {
-        const err = await response.json();
-        if (err.detail)
-          detail =
-            typeof err.detail === 'string'
-              ? err.detail
-              : (err.detail?.detail ?? detail);
-        if (err.debug) debug = err.debug;
-        if (typeof err.code === 'string') code = err.code;
-        if (typeof err.headline === 'string') headline = err.headline;
-        if (typeof err.next_step === 'string') nextStep = err.next_step;
-      } catch {
-        /* non-JSON or empty body */
+        if (isJson) {
+          const err = await response.json();
+          if (err.detail)
+            detail =
+              typeof err.detail === 'string'
+                ? err.detail
+                : (err.detail?.detail ?? detail);
+          if (err.debug) debug = err.debug;
+          if (typeof err.code === 'string') code = err.code;
+          if (typeof err.headline === 'string') headline = err.headline;
+          if (typeof err.next_step === 'string') nextStep = err.next_step;
+        } else {
+          // Non-JSON error response (HTML, plaintext, etc.)
+          const text = await response.text();
+          detail = text || `HTTP ${response.status}: ${response.statusText}`;
+          console.warn('[API] Non-JSON error response:', { status: response.status, contentType, text: text.substring(0, 200) });
+        }
+      } catch (parseErr) {
+        // Failed to read response body
+        console.error('[API] Failed to parse error response:', parseErr);
+        detail = `HTTP ${response.status}: ${response.statusText}`;
       }
       throw new ApiError(
         detail,
@@ -139,17 +151,44 @@ export async function request<T>(
       );
     }
 
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    
+    if (!isJson) {
+      console.warn('[API] Expected JSON but got:', contentType);
+      throw new ApiError(
+        `Expected JSON response but received ${contentType}`,
+        undefined,
+        `Content-Type: ${contentType}`,
+        requestId,
+        response.status,
+        'INVALID_CONTENT_TYPE',
+      );
+    }
+
     try {
-      const data = await response.json();
+      const text = await response.text();
+      if (!text || text.trim().length === 0) {
+        throw new ApiError(
+          'Empty response body',
+          undefined,
+          undefined,
+          requestId,
+          response.status,
+          'EMPTY_RESPONSE',
+        );
+      }
+      const data = JSON.parse(text);
       return data as T;
-    } catch {
+    } catch (parseErr) {
+      console.error('[API] JSON parse error:', parseErr);
       throw new ApiError(
         'Invalid JSON response',
-        undefined,
+        parseErr instanceof Error ? parseErr.message : 'JSON parse failed',
         undefined,
         requestId,
-        undefined,
-        undefined,
+        response.status,
+        'JSON_PARSE_ERROR',
       );
     }
   } catch (err) {
