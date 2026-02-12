@@ -1,5 +1,7 @@
 # MIDI Remaster Lab
 
+**Repo:** [https://github.com/btranTFT/OSTremap-gen](https://github.com/btranTFT/OSTremap-gen)
+
 Transform MIDI files into console-style audio using soundfont synthesis (Baseline) or AI generation (ML mode). Supports SNES, GBA, NDS, PS2, and Wii soundfonts.
 
 ## Prerequisites
@@ -33,8 +35,8 @@ lame --version
 ### 1. Clone the repo
 
 ```bash
-git clone <your-repo-url>
-cd RemasterOSTv2
+git clone https://github.com/btranTFT/OSTremap-gen.git
+cd OSTremap-gen
 ```
 
 ### 2. Backend
@@ -56,7 +58,7 @@ Start the API (from the `backend` folder):
 python -m uvicorn src.api:app --host 0.0.0.0 --port 8001
 ```
 
-Leave this terminal open. You should see something like:
+Leave this terminal open. Users should see:
 
 - `Uvicorn running on http://0.0.0.0:8001`
 - `[API] ML router mounted at /api/remaster_ml` (if ML deps are installed) or `ML router not available` (baseline-only)
