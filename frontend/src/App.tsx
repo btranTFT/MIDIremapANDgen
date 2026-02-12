@@ -1,68 +1,82 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
+import { API_BASE, request, toErrorDisplay } from './api';
+import { LogsPanel } from './LogsPanel';
+import type { LogEntry } from './LogsPanel';
+import type { RemasterResult } from './ResultPanel';
+import { ResultPanel } from './ResultPanel';
+import {
+  UploadPanel,
+  type RemasterMode,
+  type SoundfontId,
+} from './UploadPanel';
 import './styles.css';
 
-type SoundfontId = 'snes' | 'gba' | 'nds' | 'ps2' | 'wii';
-type RemasterMode = 'baseline' | 'ml';
+const CAPABILITIES_TIMEOUT_MS = 5000;
+const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
-interface RemasterResult {
-  request_id: string;
-  midi_url?: string;
-  audio_url?: string;
-  audio_error?: string;
-  soundfont?: string;
-  prompt_soundfont?: string;
-  method?: string;
-  description?: string;
-  classifications?: {
-    [channel: string]: {
-      program: number;
-      name: string;
-    };
-  };
+interface HealthCapabilities {
+  ml_available?: boolean;
+  available_styles?: string[];
+  ml_available_styles?: string[];
+  max_upload_bytes?: number;
 }
-
-interface LogEntry {
-  timestamp: string;
-  message: string;
-  type: 'info' | 'success' | 'error' | 'warning';
-}
-
-const API_BASE = 'http://localhost:8001';
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
   const [soundfont, setSoundfont] = useState<SoundfontId>('snes');
   const [mode, setMode] = useState<RemasterMode>('baseline');
   const [description, setDescription] = useState<string>('');
-  const [mlAvailableSoundfonts, setMlAvailableSoundfonts] = useState<string[]>([]);
+  const [mlAvailableSoundfonts, setMlAvailableSoundfonts] = useState<string[]>(
+    [],
+  );
+  const [mlAvailable, setMlAvailable] = useState(false);
+  const [maxUploadBytes, setMaxUploadBytes] = useState(DEFAULT_MAX_UPLOAD_BYTES);
   const [result, setResult] = useState<RemasterResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<import('./api').ErrorDisplay | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [progress, setProgress] = useState(0);
+  const [activeMobileTab, setActiveMobileTab] = useState<
+    'upload' | 'logs' | 'result'
+  >('upload');
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
 
-  // Fetch available ML soundfonts on mount
+  // Single capabilities source: GET /health. On failure (offline/timeout), ML stays disabled.
   React.useEffect(() => {
-    fetch(`${API_BASE}/api/ml/available_soundfonts`)
-      .then(res => res.json())
+    request<HealthCapabilities>('/health', {
+      method: 'GET',
+      timeoutMs: CAPABILITIES_TIMEOUT_MS,
+    })
       .then(data => {
-        if (data.available) {
-          setMlAvailableSoundfonts(data.available);
+        if (typeof data.ml_available === 'boolean') {
+          setMlAvailable(data.ml_available);
+        }
+        if (Array.isArray(data.ml_available_styles)) {
+          setMlAvailableSoundfonts(data.ml_available_styles);
+        }
+        if (typeof data.max_upload_bytes === 'number' && data.max_upload_bytes > 0) {
+          setMaxUploadBytes(data.max_upload_bytes);
         }
       })
       .catch(() => {
-        // ML not available, keep empty
+        // Offline, timeout, or parse error: leave mlAvailable false, mlAvailableSoundfonts []
       });
   }, []);
 
-  const addLog = (message: string, type: LogEntry['type'] = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, { timestamp, message, type }]);
-  };
+  const addLog = useCallback((
+    message: string,
+    type: LogEntry['type'] = 'info',
+    step?: string,
+    debug?: string,
+  ) => {
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString();
+    const ts = now.toISOString().slice(0, 23) + 'Z';
+    setLogs(prev => [...prev, { timestamp, ts, message, type, step, debug }]);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -79,6 +93,7 @@ function App() {
     if (!file) return;
     setLoading(true);
     setError(null);
+    setResult(null);
     setLogs([]);
     setProgress(0);
 
@@ -87,8 +102,9 @@ function App() {
       addLog(
         `Mode: ${mode.toUpperCase()} | Soundfont: ${soundfont.toUpperCase()}`,
         'info',
+        'upload',
       );
-      addLog('Starting upload...', 'info');
+      addLog('Starting upload...', 'info', 'upload');
       setProgress(10);
 
       const formData = new FormData();
@@ -98,74 +114,77 @@ function App() {
         formData.append('description', description.trim());
       }
 
-      addLog('Uploading file to backend...', 'info');
+      addLog('Uploading file to backend...', 'info', 'upload');
       setProgress(25);
 
-      const controller = new AbortController();
-      // Longer timeout for ML mode (15 min), shorter for baseline (5 min)
       const timeoutMs = mode === 'ml' ? 900000 : 300000;
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
+      // Use functional update to avoid stale closure, batch updates
       progressIntervalRef.current = setInterval(() => {
-        setProgress(p => (p < 95 ? p + 1 : p));
+        setProgress(p => {
+          const next = p < 95 ? p + 1 : p;
+          return next;
+        });
       }, 2000);
 
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const data = await request<
+        RemasterResult & {
+          logs?: Array<{
+            ts: string;
+            level: string;
+            step: string;
+            message: string;
+            debug?: string;
+          }>;
+        }
+      >(endpoint, {
         method: 'POST',
         body: formData,
-        signal: controller.signal,
+        timeoutMs,
       });
 
-      clearTimeout(timeoutId);
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-
       setProgress(90);
 
-      if (!response.ok) {
-        let detail = 'Upload failed';
-        try {
-          const err = await response.json();
-          if (err.detail) detail = err.detail;
-        } catch {
-          // ignore parse error
-        }
-        throw new Error(detail);
-      }
-
-      const data: RemasterResult = await response.json();
       setResult(data);
       setProgress(100);
-      addLog('Remaster complete.', 'success');
+      if (Array.isArray(data.logs) && data.logs.length > 0) {
+        const mapped = data.logs.map(ev => ({
+          ts: ev.ts,
+          message: ev.message,
+          level: (ev.level === 'warn' ? 'warn' : ev.level === 'error' ? 'error' : 'info') as LogEntry['level'],
+          step: ev.step,
+          debug: ev.debug,
+        }));
+        setLogs(prev => [...prev, ...mapped]);
+        addLog('Remaster complete.', 'success');
+      } else {
+        addLog('Remaster complete.', 'success');
+      }
 
       if (data.audio_error) {
-        addLog(`Audio warning: ${data.audio_error}`, 'warning');
+        addLog(`Audio warning: ${data.audio_error}`, 'warning', 'encode');
       }
     } catch (err) {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      let msg = err instanceof Error ? err.message : 'Upload failed';
-      if (err instanceof Error && err.name === 'AbortError') {
-        msg = 'Request timed out (5 min).';
-      } else if (msg.includes('Failed to fetch')) {
-        msg = 'Backend not reachable on http://localhost:8001';
-      }
-      setError(msg);
-      addLog(`Error: ${msg}`, 'error');
+      const display = toErrorDisplay(err);
+      setError(display);
+      addLog(display.detail, 'error', undefined, display.debug);
       setProgress(0);
     } finally {
       setLoading(false);
     }
   };
 
-  const resolveUrl = (url?: string | null) => {
+  const resolveUrl = useCallback((url?: string | null) => {
     if (!url) return undefined;
     return url.startsWith('http') ? url : `${API_BASE}${url}`;
-  };
+  }, []);
 
   return (
     <div className="app">
@@ -177,201 +196,73 @@ function App() {
       </header>
 
       <main className="app-main">
-        <section className="panel panel-upload">
-          <h2>Upload</h2>
-          <p className="hint">Accepts: .mid, .midi</p>
-
-          <div className="field">
-            <span>Mode</span>
-            <div className="mode-toggle">
-              <button
-                type="button"
-                className={
-                  'mode-btn' + (mode === 'baseline' ? ' mode-btn-active' : '')
-                }
-                onClick={() => setMode('baseline')}
-                disabled={loading}
-              >
-                Baseline (Soundfont)
-              </button>
-              <button
-                type="button"
-                className={
-                  'mode-btn' + (mode === 'ml' ? ' mode-btn-active' : '')
-                }
-                onClick={() => setMode('ml')}
-                disabled={loading}
-              >
-                ML (MusicGen)
-              </button>
-            </div>
-          </div>
-
-          <div className="field">
-            <span>Console soundfont {mode === 'ml' ? 'prompt' : 'bus'}</span>
-            <div className="sf-board">
-              {(
-                [
-                  { id: 'snes', label: 'SNES', note: '16‑bit strings' },
-                  { id: 'gba', label: 'GBA', note: 'Handheld synth' },
-                  { id: 'nds', label: 'NDS', note: 'Keys & organs' },
-                  { id: 'ps2', label: 'PS2', note: 'Cinematic mix' },
-                  { id: 'wii', label: 'Wii', note: 'Orchestral stage' },
-                ] as const
-              ).map(sf => {
-                const isAvailableForML =
-                  mode === 'baseline' ||
-                  mlAvailableSoundfonts.includes(sf.id);
-                return (
-                  <button
-                    key={sf.id}
-                    type="button"
-                    className={
-                      'sf-pill' +
-                      (soundfont === sf.id ? ' sf-pill-active' : '') +
-                      (!isAvailableForML ? ' sf-pill-disabled' : '')
-                    }
-                    onClick={() => setSoundfont(sf.id)}
-                    disabled={loading || !isAvailableForML}
-                    title={
-                      !isAvailableForML
-                        ? `ML model not available for ${sf.label}`
-                        : ''
-                    }
-                  >
-                    <span className="sf-pill-label">{sf.label}</span>
-                    <span className="sf-pill-note">{sf.note}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {mode === 'ml' && (
-            <div className="field">
-              <span>Description (optional)</span>
-              <input
-                type="text"
-                placeholder="e.g., video game music, upbeat chiptune..."
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                disabled={loading}
-                className="text-input"
-              />
-            </div>
-          )}
-
-          <input
-            type="file"
-            accept=".mid,.midi"
-            onChange={handleFileChange}
-            disabled={loading}
-          />
+        <nav
+          className="app-main__mobile-tabs"
+          aria-label="Sections"
+        >
           <button
-            onClick={handleUpload}
-            disabled={!file || loading}
-            className="primary"
+            type="button"
+            className={`app-main__mobile-tab ${activeMobileTab === 'upload' ? 'app-main__mobile-tab--active' : ''}`}
+            onClick={() => setActiveMobileTab('upload')}
+            aria-pressed={activeMobileTab === 'upload'}
           >
-            {loading ? 'Processing…' : 'Remaster'}
+            Upload
           </button>
-
-          {loading && (
-            <div className="progress">
-              <div className="bar">
-                <div className="fill" style={{ width: `${progress}%` }} />
-              </div>
-              <span>{progress}%</span>
-            </div>
-          )}
-        </section>
-
-        <section className="panel">
-          <h2>Logs</h2>
-          <div className="logs">
-            {logs.map((log, i) => (
-              <div key={i} className={`log log-${log.type}`}>
-                <span className="log-time">[{log.timestamp}]</span>
-                <span className="log-msg">{log.message}</span>
-              </div>
-            ))}
-            {logs.length === 0 && <p className="hint">No logs yet.</p>}
-          </div>
-        </section>
-
-        <section className="panel">
-          <h2>Result</h2>
-          {error && <div className="error">Error: {error}</div>}
-          {result && (
-            <>
-              {result.method && (
-                <p>
-                  Method: <strong>{result.method.toUpperCase()}</strong>
-                </p>
-              )}
-              {result.soundfont && (
-                <p>
-                  Soundfont: <strong>{result.soundfont.toUpperCase()}</strong>
-                </p>
-              )}
-              {result.prompt_soundfont && (
-                <p>
-                  Prompt soundfont:{' '}
-                  <strong>{result.prompt_soundfont.toUpperCase()}</strong>
-                </p>
-              )}
-              {result.description && (
-                <p>
-                  Description: <em>{result.description}</em>
-                </p>
-              )}
-              <div className="downloads">
-                {result.midi_url && (
-                  <a
-                    href={resolveUrl(result.midi_url)}
-                    className="button secondary"
-                    download
-                  >
-                    Download MIDI
-                  </a>
-                )}
-                {result.audio_url && !result.audio_error && (
-                  <a
-                    href={resolveUrl(result.audio_url)}
-                    className="button secondary"
-                    download
-                  >
-                    Download MP3
-                  </a>
-                )}
-              </div>
-              {result.audio_error && (
-                <p className="warning">
-                  Audio not available: {result.audio_error}
-                </p>
-              )}
-              {result.classifications && (
-                <>
-                  <h3>Channel classifications</h3>
-                  <ul className="classifications">
-                    {Object.entries(result.classifications || {}).map(
-                      ([ch, info]) => (
-                        <li key={ch}>
-                          <strong>Channel {ch}:</strong> {info.name} (Program{' '}
-                          {info.program})
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                </>
-              )}
-            </>
-          )}
-          {!error && !result && (
-            <p className="hint">
-              Upload a MIDI and click Remaster to see results.
-            </p>
-          )}
-        </section>
+          <button
+            type="button"
+            className={`app-main__mobile-tab ${activeMobileTab === 'logs' ? 'app-main__mobile-tab--active' : ''}`}
+            onClick={() => setActiveMobileTab('logs')}
+            aria-pressed={activeMobileTab === 'logs'}
+          >
+            Logs
+          </button>
+          <button
+            type="button"
+            className={`app-main__mobile-tab ${activeMobileTab === 'result' ? 'app-main__mobile-tab--active' : ''}`}
+            onClick={() => setActiveMobileTab('result')}
+            aria-pressed={activeMobileTab === 'result'}
+          >
+            Result
+          </button>
+        </nav>
+        <div
+          className={`app-main__panel-wrap ${activeMobileTab === 'upload' ? 'app-main__panel-wrap--visible' : ''}`}
+          data-panel="upload"
+        >
+          <UploadPanel
+            file={file}
+            soundfont={soundfont}
+            mode={mode}
+            description={description}
+            loading={loading}
+            progress={progress}
+            mlAvailableSoundfonts={mlAvailableSoundfonts}
+            mlAvailable={mlAvailable}
+            maxUploadBytes={maxUploadBytes}
+            onFileChange={handleFileChange}
+            onUpload={handleUpload}
+            onModeChange={setMode}
+            onSoundfontChange={setSoundfont}
+            onDescriptionChange={setDescription}
+          />
+        </div>
+        <div
+          className={`app-main__panel-wrap ${activeMobileTab === 'logs' ? 'app-main__panel-wrap--visible' : ''}`}
+          data-panel="logs"
+        >
+          <LogsPanel logs={logs} />
+        </div>
+        <div
+          className={`app-main__panel-wrap ${activeMobileTab === 'result' ? 'app-main__panel-wrap--visible' : ''}`}
+          data-panel="result"
+        >
+          <ResultPanel
+            error={error}
+            result={result}
+            loading={loading}
+            resolveUrl={resolveUrl}
+          />
+        </div>
       </main>
 
       <footer className="app-footer">
@@ -387,4 +278,3 @@ function App() {
 }
 
 export default App;
-
