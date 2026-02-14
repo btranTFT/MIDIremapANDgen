@@ -1,6 +1,6 @@
 # MIDI Remaster Lab
 
-**Repo:** [https://github.com/btranTFT/OSTremap-gen](https://github.com/btranTFT/OSTremap-gen)
+**Repo:** [https://github.com/btranTFT/MIDIremapANDgen](https://github.com/btranTFT/MIDIremapANDgen)
 
 Transform MIDI files into console-style audio using soundfont synthesis (Baseline) or AI generation (ML mode). Supports SNES, GBA, NDS, PS2, and Wii soundfonts.
 
@@ -35,8 +35,8 @@ lame --version
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/btranTFT/OSTremap-gen.git
-cd OSTremap-gen
+git clone https://github.com/btranTFT/MIDIremapANDgen.git
+cd MIDIremapANDgen
 ```
 
 ### 2. Backend
@@ -80,37 +80,45 @@ Then open **http://localhost:3000** in your browser.
 ## Project layout
 
 ```
-RemasterOSTv2/
+MIDIremapANDgen/
 ├── backend/                 # FastAPI API + MIDI/audio pipeline
 │   ├── src/
 │   │   ├── api.py           # Main app, /api/remaster, soundfonts, health
 │   │   ├── api_ml.py        # /api/remaster_ml, ML health, available soundfonts
 │   │   ├── ml_inference.py  # MusicGen load + generate_with_chroma
 │   │   ├── audio_renderer.py
+│   │   ├── schema.py        # Validation, upload limits, safe filenames
+│   │   ├── log_events.py    # Event logging for UI
 │   │   ├── instrument_classifier.py
 │   │   ├── instrument_mapper.py
 │   │   ├── feature_extractor.py
-│   │   └── soundfonts/      # Per–soundfont .sf2 paths
+│   │   └── soundfonts/      # Per–soundfont .sf2 paths (snes, gba, nds, ps2, wii)
+│   ├── tests/               # Schema and API tests
 │   ├── data/soundfonts/     # .sf2 files (snes, gba, nds, ps2, wii)
-│   └── requirements.txt     # Python deps for API + optional ML
+│   └── requirements.txt    # Python deps for API + optional ML
 ├── frontend/                # React + Vite UI
 │   ├── src/
 │   │   ├── App.tsx          # Upload, mode toggle, soundfont pills, results
 │   │   ├── main.tsx
-│   │   └── styles.css
+│   │   ├── styles.css
+│   │   ├── api.ts           # API client, health, request-id
+│   │   ├── UploadPanel.tsx
+│   │   ├── ResultPanel.tsx
+│   │   ├── LogsPanel.tsx
+│   │   └── ErrorBoundary.tsx
 │   ├── index.html
 │   ├── package.json
 │   └── vite.config.ts       # Port 3000, proxy to backend 8001
-├── MLtraining/              # Local MusicGen fine-tuning scripts
+├── MLtraining/              # Local MusicGen fine-tuning scripts + checkpoints
 │   ├── musicgen_training_local.py      # SNES
-│   ├── musicgen_training_*_local.py   # GBA, NDS, PS2, Wii
+│   ├── musicgen_training_*_local.py    # GBA, NDS, PS2, Wii
 │   ├── requirements_local.txt
 │   └── README.md            # Checkpoint naming, status, training notes
 ├── MLcolabtraining/         # Colab-oriented training scripts (same per–soundfont)
 │   └── musicgen_training*.py
 ├── .gitignore
 ├── README.md                # This file
-└── requirements.txt         # Root requirements overview (see below)
+└── requirements.txt        # Root deps (includes backend/requirements.txt)
 ```
 
 ---
@@ -139,7 +147,7 @@ Training (local or Colab) is documented in `MLtraining/` and uses the scripts in
 
 ## Root `requirements.txt`
 
-The repo includes a root **requirements.txt** that lists required and optional dependencies for the whole project and points to backend/MLtraining requirements. See that file for one-place overview; actual install is still done per folder (`backend`, `MLtraining`) as above.
+The repo includes a root **requirements.txt** that pulls in backend dependencies (`-r backend/requirements.txt`). Install from repo root with `pip install -r requirements.txt` for the API; for ML training, use `MLtraining/requirements_local.txt` in that folder.
 
 ---
 
