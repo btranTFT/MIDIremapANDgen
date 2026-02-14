@@ -60,3 +60,6 @@ logs/
 # Cursor IDE files (not part of repo)
 .cursorignore
 .cursor/
+
+# Proposal / report (not part of application repo)
+report/
