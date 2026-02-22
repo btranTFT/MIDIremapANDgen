@@ -301,7 +301,7 @@ function App() {
 
       <footer className="app-footer">
         <p>
-          TEST - Baseline Remapping |{' '}
+          MIDI Remaster Lab |{' '}
           <a href={`${API_BASE}/health`} target="_blank" rel="noreferrer">
             API Health
           </a>

@@ -5,8 +5,14 @@ import json
 import os
 import shutil
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env from the backend directory (no-op if file absent)
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 import mido
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
@@ -27,7 +33,14 @@ from src.schema import (
 from src.log_events import log_event
 from src.soundfonts import VALID_IDS, get_soundfont_path, list_soundfonts as list_soundfonts_options
 
-app = FastAPI(title="MIDI Remastering API", version="0.4.0")
+@asynccontextmanager
+async def _lifespan(app):
+    """Application lifespan: start background cleanup task."""
+    asyncio.create_task(cleanup_old_files())
+    yield
+
+
+app = FastAPI(title="MIDI Remastering API", version="0.4.0", lifespan=_lifespan)
 
 
 async def _http_exception_handler(request, exc: HTTPException):
@@ -118,9 +131,7 @@ async def cleanup_old_files():
         await asyncio.sleep(300)
 
 
-@app.on_event("startup")
-async def startup():
-    asyncio.create_task(cleanup_old_files())
+# Startup is handled by the lifespan context manager above.
 
 
 def create_workspace() -> Path:

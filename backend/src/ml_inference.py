@@ -112,15 +112,36 @@ class MusicGenInference:
             )
         
         print(f"[ML] Loading checkpoint from {checkpoint_path}")
-        checkpoint = torch.load(checkpoint_path, map_location=self.device)
-        
-        # Apply checkpoint to language model
-        # MusicGen structure: model.lm (CompressionModel has .condition_provider, .lm)
-        if hasattr(self.model, "lm") and hasattr(self.model.lm, "load_state_dict"):
-            self.model.lm.load_state_dict(checkpoint, strict=False)
-            print(f"[ML] Checkpoint loaded into language model for {self.soundfont_id.upper()}")
+        raw = torch.load(checkpoint_path, map_location=self.device)
+
+        # The training script (musicgen_training_local.py) saves a wrapper dict:
+        #   {"epoch": int, "model_state_dict": OrderedDict, "val_loss": float, "config": dict}
+        # We must extract the actual state dict before calling load_state_dict.
+        # A raw state dict (no wrapper) is also handled for any legacy checkpoints.
+        if isinstance(raw, dict) and "model_state_dict" in raw:
+            state_dict = raw["model_state_dict"]
+            epoch_info = f" (epoch {raw.get('epoch', '?')}, val_loss {raw.get('val_loss', '?'):.4f})" \
+                if "val_loss" in raw else f" (epoch {raw.get('epoch', '?')})"
+            print(f"[ML] Checkpoint format: training wrapper{epoch_info}")
         else:
-            print("[ML] WARNING: Could not load checkpoint - model structure unexpected")
+            # Assume it's already a raw state dict
+            state_dict = raw
+            print("[ML] Checkpoint format: raw state dict")
+
+        # Apply to language model
+        if hasattr(self.model, "lm") and hasattr(self.model.lm, "load_state_dict"):
+            result = self.model.lm.load_state_dict(state_dict, strict=False)
+            if result.missing_keys:
+                print(f"[ML] WARNING: {len(result.missing_keys)} missing keys in checkpoint "
+                      f"(first 5: {result.missing_keys[:5]})")
+            if result.unexpected_keys:
+                print(f"[ML] WARNING: {len(result.unexpected_keys)} unexpected keys in checkpoint "
+                      f"(first 5: {result.unexpected_keys[:5]})")
+            loaded = len(state_dict) - len(result.missing_keys)
+            print(f"[ML] Checkpoint loaded: {loaded}/{len(state_dict)} keys matched "
+                  f"for {self.soundfont_id.upper()} language model")
+        else:
+            print("[ML] WARNING: Could not load checkpoint — model structure unexpected")
         
         self.model.set_generation_params(
             duration=self.config["duration"],
