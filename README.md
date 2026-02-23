@@ -92,8 +92,18 @@ MIDIremapANDgen/
 │   │   ├── instrument_classifier.py
 │   │   ├── instrument_mapper.py
 │   │   ├── feature_extractor.py
-│   │   └── soundfonts/      # Per–soundfont .sf2 paths (snes, gba, nds, ps2, wii)
-│   ├── tests/               # Schema and API tests
+│   │   ├── soundfonts/      # Per–soundfont .sf2 paths (snes, gba, nds, ps2, wii)
+│   │   └── evaluation/      # Quantitative evaluation metrics
+│   │       ├── melody_similarity.py  # Pearson correlation of pitch contours
+│   │       ├── pics.py               # Pitch-Interval Contour Similarity (MIREX)
+│   │       ├── onset_alignment.py    # Onset alignment F-measure (Bello 2005)
+│   │       └── fad.py                # Fréchet Audio Distance (Kilgour 2019)
+│   ├── tests/               # Unit + integration tests
+│   │   ├── test_api.py      # API endpoint tests
+│   │   ├── test_pics.py     # PICS metric tests
+│   │   ├── test_fad.py      # FAD metric tests (no torch required)
+│   │   ├── test_ml_checkpoint.py  # Checkpoint loading tests
+│   │   └── conftest.py      # Shared fixtures (minimal MIDI)
 │   ├── data/soundfonts/     # .sf2 files (snes, gba, nds, ps2, wii)
 │   └── requirements.txt    # Python deps for API + optional ML
 ├── frontend/                # React + Vite UI
@@ -109,6 +119,11 @@ MIDIremapANDgen/
 │   ├── index.html
 │   ├── package.json
 │   └── vite.config.ts       # Port 3000, proxy to backend 8001
+├── scripts/                 # Evaluation and benchmarking utilities
+│   ├── run_evaluation.py    # RQ1: content-preservation metrics on a MIDI corpus
+│   └── benchmark_runtime.py # RQ3: per-style wall-clock latency benchmarks
+├── data/
+│   └── eval_corpus/         # Open-licensed MIDI files for evaluation
 ├── MLtraining/              # Local MusicGen fine-tuning scripts + checkpoints
 │   ├── musicgen_training_local.py      # SNES
 │   ├── musicgen_training_*_local.py    # GBA, NDS, PS2, Wii
@@ -130,6 +145,50 @@ MIDIremapANDgen/
 
 ---
 
+## Evaluation & Testing
+
+### Running tests
+
+From the `backend` directory with the venv active:
+
+```bash
+# All tests (skips slow integration tests by default)
+python -m pytest tests/ -v -m "not slow"
+
+# Include slow tests (requires FluidSynth + LAME on PATH)
+python -m pytest tests/ -v
+```
+
+### Evaluation metrics
+
+The evaluation package (`backend/src/evaluation/`) implements four quantitative metrics:
+
+| Metric | Module | What it measures | Research Question |
+|--------|--------|-----------------|-------------------|
+| **Pitch-Interval Contour Similarity (PICS)** | `pics.py` | Whether the melody's shape (up/down/same pattern) is preserved after remapping. Transposition-invariant. | RQ1 |
+| **Melody Contour Similarity** | `melody_similarity.py` | Pearson correlation of raw pitch sequences (secondary check). | RQ1 |
+| **Onset Alignment F-measure** | `onset_alignment.py` | Whether note timing is preserved (precision, recall, F-measure within a tolerance window). | RQ1 |
+| **Fréchet Audio Distance (FAD)** | `fad.py` | Whether ML-generated audio statistically resembles real console-era recordings. Requires torch + torchaudio + a reference audio set. | RQ4 |
+
+### Running the evaluation corpus
+
+From the repo root with the backend venv active:
+
+```bash
+# Run content-preservation metrics on all styles
+python scripts/run_evaluation.py --corpus data/eval_corpus
+
+# Specific styles, with CSV output
+python scripts/run_evaluation.py --corpus data/eval_corpus --styles snes gba --output results/eval.csv
+
+# Runtime benchmarks
+python scripts/benchmark_runtime.py --corpus data/eval_corpus --styles snes
+```
+
+The evaluation runner computes PICS, Pearson melody similarity, and onset F-measure for each MIDI file × style pair, and prints a per-style summary table.
+
+---
+
 ## Optional: ML generation
 
 To use the **ML** mode in the app:
@@ -148,6 +207,8 @@ Training (local or Colab) is documented in `MLtraining/` and uses the scripts in
 ## Root `requirements.txt`
 
 The repo includes a root **requirements.txt** that pulls in backend dependencies (`-r backend/requirements.txt`). Install from repo root with `pip install -r requirements.txt` for the API; for ML training, use `MLtraining/requirements_local.txt` in that folder.
+
+**Notable dependencies**: `numpy`, `scipy` (for FAD matrix computation), `mido` (MIDI parsing). ML-specific deps (`torch`, `torchaudio`, `audiocraft`) are optional — see the ML section above.
 
 ---
 
