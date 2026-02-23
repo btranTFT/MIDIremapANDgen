@@ -1,0 +1,4141 @@
+{
+  "gba": [
+    {
+      "bank": 0,
+      "program": 0,
+      "name": "Bright Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 1,
+      "name": "Bright Piano 2",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 2,
+      "name": "Electric Grand Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 3,
+      "name": "Honky-Tonk Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 4,
+      "name": "Electric Piano 1",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 5,
+      "name": "Electric Piano 2",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 6,
+      "name": "Harpsichord",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 7,
+      "name": "Clavinet",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 8,
+      "name": "Celesta",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 9,
+      "name": "Glockenspiel",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 10,
+      "name": "Music Box",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 11,
+      "name": "Vibraphone",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 12,
+      "name": "Marimba",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 13,
+      "name": "Xylophone",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 14,
+      "name": "Tubular Bell",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 16,
+      "name": "Percussive Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 17,
+      "name": "Percussive Organ 2",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 18,
+      "name": "Rock Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 19,
+      "name": "Pipe Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 20,
+      "name": "Pipe Organ 2",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 21,
+      "name": "Accordion",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 24,
+      "name": "Nylon String Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 25,
+      "name": "Nylon Guitar 2",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 26,
+      "name": "Electric Jazz Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 29,
+      "name": "Overdriven Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 30,
+      "name": "Distortion Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 31,
+      "name": "Guitar Harmonics",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 33,
+      "name": "Electric Finger Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 34,
+      "name": "Electric Picked Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 35,
+      "name": "Fretless Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 36,
+      "name": "Slap Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 37,
+      "name": "Slap Bass 2",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 38,
+      "name": "Synth Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 39,
+      "name": "Synth Bass 2",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 40,
+      "name": "Violin",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 44,
+      "name": "Pizzicato Strings",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 45,
+      "name": "Pizzicato Strings 2",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 46,
+      "name": "Harp",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 47,
+      "name": "Timpani",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 48,
+      "name": "String Ensemble",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 49,
+      "name": "Slow String Ensemble",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 50,
+      "name": "Synth Strings",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 51,
+      "name": "Slow Synth Strings",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 52,
+      "name": "Voice Aahs",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 53,
+      "name": "Voice Oohs",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 54,
+      "name": "Synth Voice",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 55,
+      "name": "Orchestra Hit",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 56,
+      "name": "Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 57,
+      "name": "French Horn 2",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 58,
+      "name": "Tuba",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 59,
+      "name": "Muted Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 60,
+      "name": "French Horn",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 68,
+      "name": "Oboe",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 69,
+      "name": "English Horn",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 70,
+      "name": "Bassoon",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 71,
+      "name": "Clarinet",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 72,
+      "name": "Clarinet 2",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 73,
+      "name": "Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 77,
+      "name": "Shakuhachi",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 78,
+      "name": "Whistle",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 79,
+      "name": "Ocarina",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 80,
+      "name": "GB Square",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 81,
+      "name": "GB Sawtooth",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 82,
+      "name": "GB Calliope",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 83,
+      "name": "GB Chiff",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 84,
+      "name": "GB Charang",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 85,
+      "name": "GB Voice",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 86,
+      "name": "GB Fifths",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 87,
+      "name": "GB Bass+Lead",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 88,
+      "name": "Pad 1",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 89,
+      "name": "Pad 2",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 90,
+      "name": "Pad 3",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 91,
+      "name": "Pad 4",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 92,
+      "name": "Pad 5",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 93,
+      "name": "Pad 6",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 105,
+      "name": "Banjo",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 106,
+      "name": "Shamisen",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 107,
+      "name": "Koto",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 114,
+      "name": "Steel Drum",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 119,
+      "name": "Reverse Cymbal",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 121,
+      "name": "SFX Whistle",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 122,
+      "name": "SFX Wave",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 123,
+      "name": "SFX Bubbles",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 124,
+      "name": "SFX Bike Bell",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 125,
+      "name": "8-Bit Bass",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 126,
+      "name": "Applause",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 127,
+      "name": "Gunshot",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 1,
+      "program": 1,
+      "name": "Pitched Cymbals",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 4,
+      "name": "Electric Piano 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 9,
+      "name": "Glockenspiel 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 14,
+      "name": "Tubular Bell 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 24,
+      "name": "Nylon Guitar 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 38,
+      "name": "Synth Bass 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 39,
+      "name": "Synth Bass 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 46,
+      "name": "Harp 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 48,
+      "name": "String Ensemble 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 50,
+      "name": "Synth Strings 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 56,
+      "name": "Staccato Trumpet",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 63,
+      "name": "Heavy Guitar",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 71,
+      "name": "Clarinet 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 80,
+      "name": "GB Square 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 81,
+      "name": "GB Square 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 82,
+      "name": "GB Calliope 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 83,
+      "name": "GB Calliope 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 84,
+      "name": "GB Square/Voice",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 85,
+      "name": "GB Bass+Lead 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 86,
+      "name": "GB Bass",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 87,
+      "name": "GB Saw 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 126,
+      "name": "SFX Applause",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 9,
+      "name": "Glockenspiel 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 14,
+      "name": "Tubular Bell 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 48,
+      "name": "String Ensemble 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 0,
+      "name": "Drum Kit",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 1,
+      "name": "Drum Kit 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 2,
+      "name": "Drum Kit 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 3,
+      "name": "Drum Kit 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 4,
+      "name": "Drum Kit 5",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 5,
+      "name": "Drum Kit 6",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 6,
+      "name": "Drum Kit 7",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 7,
+      "name": "Drum Kit 8 (M3)",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 8,
+      "name": "Drum Kit 9 (M3)",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 9,
+      "name": "Drum Kit 10 (M3)",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    }
+  ],
+  "nds": [
+    {
+      "bank": 0,
+      "program": 0,
+      "name": "Grand Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 1,
+      "name": "Bright Grand Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 2,
+      "name": "Electric Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 3,
+      "name": "Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 4,
+      "name": "Rhoads Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 5,
+      "name": "Chorused Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 6,
+      "name": "Harpsichord",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 7,
+      "name": "Clavinet",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 8,
+      "name": "Celesta",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 9,
+      "name": "Glockenspiel",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 10,
+      "name": "Music Box",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 11,
+      "name": "Vibraphone",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 12,
+      "name": "Marimba",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 13,
+      "name": "Xylophone",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 14,
+      "name": "Tubular Bells",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 16,
+      "name": "Drawbar organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 17,
+      "name": "Drawbar organ 2",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 18,
+      "name": "Rock Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 19,
+      "name": "Church Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 21,
+      "name": "Accordian",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 24,
+      "name": "Nylon Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 25,
+      "name": "Steel guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 26,
+      "name": "Jazz Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 27,
+      "name": "Clean Dry Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 28,
+      "name": "Palm Muted Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 29,
+      "name": "Overdriven Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 30,
+      "name": "Distortion Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 31,
+      "name": "Guitar Riff",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 32,
+      "name": "Acoustic bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 33,
+      "name": "Electric Bass~Finger",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 34,
+      "name": "Electric Bass~Pick",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 35,
+      "name": "Fretless Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 36,
+      "name": "Slap Bass 1",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 37,
+      "name": "Slap Bass 2",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 38,
+      "name": "Synth Bass 1",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 39,
+      "name": "Synth Bass 2",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 40,
+      "name": "Violin",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 41,
+      "name": "Viola",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 42,
+      "name": "Cello",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 44,
+      "name": "Tremolo Strings",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 45,
+      "name": "Pizzicato Strings",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 46,
+      "name": "Orchestral Harp",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 47,
+      "name": "Timpani",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 48,
+      "name": "String Ensemble 1",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 49,
+      "name": "String Ensemble 2",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 50,
+      "name": "Synth Strings",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 52,
+      "name": "Choir aah",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 53,
+      "name": "Choir ooh",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 55,
+      "name": "Orchestra Hit",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 56,
+      "name": "Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 57,
+      "name": "Trombone",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 58,
+      "name": "Tuba",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 59,
+      "name": "Muted Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 60,
+      "name": "French Horn",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 61,
+      "name": "Brass Section",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 62,
+      "name": "Synth Brass",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 64,
+      "name": "Soprano Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 68,
+      "name": "Oboe",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 71,
+      "name": "Clarinet",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 73,
+      "name": "Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 75,
+      "name": "Pan flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 77,
+      "name": "Shakuhachi",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 80,
+      "name": "Square Lead",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 81,
+      "name": "Sawtooth",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 88,
+      "name": "Deep New Age Bass",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 89,
+      "name": "Bowed Glass Synth",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 90,
+      "name": "Synth Lead 1",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 91,
+      "name": "Synth Lead 2",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 92,
+      "name": "Synth Lead 3",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 93,
+      "name": "Synth Lead 4",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 94,
+      "name": "Synth Lead 5",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 95,
+      "name": "Synth Lead 6",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 96,
+      "name": "Synth Lead 7",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 97,
+      "name": "Synth Lead 8",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 98,
+      "name": "Sliding Synth Lead",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 99,
+      "name": "Beeping Synth",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 104,
+      "name": "Sitar",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 105,
+      "name": "Banjo",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 107,
+      "name": "Koto",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 113,
+      "name": "Agogo",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 114,
+      "name": "Steel drums",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 115,
+      "name": "Gong",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 116,
+      "name": "Taiko Drum",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 118,
+      "name": "Odd Snare",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 119,
+      "name": "Reverse",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 120,
+      "name": "Distortion Guitar 1",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 121,
+      "name": "Distortion Guitar 2",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 122,
+      "name": "Distortion Guitar 3",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 123,
+      "name": "Distortion Fx",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 1,
+      "program": 0,
+      "name": "Grand Piano 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 1,
+      "name": "Grand Piano 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 2,
+      "name": "Grand Piano 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 3,
+      "name": "Honky Tonk Piano",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 6,
+      "name": "Harpsichord 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 8,
+      "name": "Celesta 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 9,
+      "name": "Special Glockenspiel",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 10,
+      "name": "SP. Glockenspiel 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 11,
+      "name": "Vibraphone 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 16,
+      "name": "Drawbar Organ 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 17,
+      "name": "Drawbar Organ 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 19,
+      "name": "Church Organ 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 25,
+      "name": "Steel Guitar 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 27,
+      "name": "Elesa Guitar Low",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 28,
+      "name": "Elesa Guitar Lower",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 29,
+      "name": "Overdriven Guitar 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 30,
+      "name": "Guitar Synth",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 32,
+      "name": "Acoustic Bass 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 33,
+      "name": "Slap/Elec Bass Duo",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 35,
+      "name": "Fretless Bass 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 36,
+      "name": "Slap Bass 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 37,
+      "name": "Slap Bass 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 38,
+      "name": "Elite Synth Bass 1",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 39,
+      "name": "Elite Synth Bass 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 42,
+      "name": "Deep Cello",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 45,
+      "name": "Pizzicato Strings 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 46,
+      "name": "Orchestral Harp 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 47,
+      "name": "Epic Timpani",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 48,
+      "name": "String Ensemble 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 49,
+      "name": "String Ensemble 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 52,
+      "name": "Choir aah 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 53,
+      "name": "Orchestra hit 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 54,
+      "name": "Epic Orchestra Hit",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 55,
+      "name": "Elite Orchestra Hit",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 56,
+      "name": "Trumpet 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 57,
+      "name": "Trombone 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 58,
+      "name": "Trumpet 2.1",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 60,
+      "name": "French Horn 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 68,
+      "name": "Oboe 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 71,
+      "name": "Clarinet 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 73,
+      "name": "Flute 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 74,
+      "name": "Flute 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 75,
+      "name": "Flute 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 78,
+      "name": "High Oriental Flute",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 81,
+      "name": "Sawtooth 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 114,
+      "name": "Steel Drums 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 119,
+      "name": "Reverse Cymbal 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 120,
+      "name": "Reverse Cymbal?",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 9,
+      "name": "Glockenspiel 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 29,
+      "name": "Overdriven Guitar 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 38,
+      "name": "Synth Bass 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 39,
+      "name": "Synth Bass 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 47,
+      "name": "Orchestra Effect",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 48,
+      "name": "String Stab",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 49,
+      "name": "Octave Raise Strings",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 51,
+      "name": "Choir Aah 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 52,
+      "name": "Choir Aah 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 53,
+      "name": "Legend Orchestra Hit",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 54,
+      "name": "Weird orchestra hit",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 55,
+      "name": "Impact Hit",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 56,
+      "name": "Trumpet 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 81,
+      "name": "Sawtooth 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 3,
+      "program": 38,
+      "name": "Synth bass 5",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 3,
+      "program": 39,
+      "name": "Synth Bass 6(1)",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 3,
+      "program": 47,
+      "name": "Timpani 3(1)",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 3,
+      "program": 48,
+      "name": "Fright Strings",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 3,
+      "program": 49,
+      "name": "Deep String Ensemble",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 3,
+      "program": 61,
+      "name": "Bass trumpet",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 3,
+      "program": 81,
+      "name": "Strange Sawtooth",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 90,
+      "name": "Technology Fx 1",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 91,
+      "name": "Technology Fx 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 92,
+      "name": "Technology Fx 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 93,
+      "name": "Technology Fx 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 94,
+      "name": "Technology Fx 5",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 95,
+      "name": "Technology Loop",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 96,
+      "name": "Sparkle Fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 97,
+      "name": "Sparkle 2 Fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 98,
+      "name": "Guitar Wah fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 99,
+      "name": "Winding Up sfx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 100,
+      "name": "Collision sfx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 101,
+      "name": "Zip FX",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 102,
+      "name": "Guitar Moo",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 103,
+      "name": "Guitar Moo 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 104,
+      "name": "Opulucid Sfx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 105,
+      "name": "Opulucid Sfx 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 106,
+      "name": "Sweep Fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 107,
+      "name": "Wind Fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 108,
+      "name": "Wave Fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 109,
+      "name": "Vinyl Crackle Fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 5,
+      "program": 110,
+      "name": "Tap Fx",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 0,
+      "name": "Electric Gym Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 1,
+      "name": "Ground Gym Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 2,
+      "name": "Enter Cheren Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 3,
+      "name": "Bug Gym Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 4,
+      "name": "Stardom Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 5,
+      "name": "Subway Trainer Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 6,
+      "name": "Virbank Complex Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 7,
+      "name": "Water Gym Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 8,
+      "name": "Enter Colress Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 9,
+      "name": "Shadow Triad Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 10,
+      "name": "Dancer Amen 1",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 11,
+      "name": "Dancer Amen 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 12,
+      "name": "Johto Champ Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 13,
+      "name": "Johto Champ Amen Up",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 14,
+      "name": "Johto Leader Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 15,
+      "name": "HoennLeaderAmenBreak",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 16,
+      "name": "Sinnoh Leader Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 17,
+      "name": "Colress Battle Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 18,
+      "name": "Iris Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 19,
+      "name": "Hall of Fame Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 20,
+      "name": "Join Avenue Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 80,
+      "program": 21,
+      "name": "Volcano Amen",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 0,
+      "name": "Drumset 1",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 1,
+      "name": "Drumset 2",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 2,
+      "name": "Drumset 3",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 3,
+      "name": "Drumset 4",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 4,
+      "name": "Drumset 5",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 5,
+      "name": "Drumset 6",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 6,
+      "name": "Drumset 7",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 7,
+      "name": "Drumset 8",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 8,
+      "name": "Drumset 9",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 9,
+      "name": "Drumset 10",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 10,
+      "name": "Drumset 11",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    }
+  ],
+  "ps2": [
+    {
+      "bank": 0,
+      "program": 0,
+      "name": "Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 1,
+      "name": "Pop Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 2,
+      "name": "Electric Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 3,
+      "name": "Honky Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 4,
+      "name": "Midnight Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 5,
+      "name": "Pop Electric Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 6,
+      "name": "Cembalo",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 7,
+      "name": "Clavinet",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 8,
+      "name": "Celesta",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 9,
+      "name": "Glockenspiel",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 10,
+      "name": "Orgel",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 11,
+      "name": "Vibes",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 12,
+      "name": "Marimba",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 13,
+      "name": "Xylophone",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 14,
+      "name": "Church Bells",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 15,
+      "name": "Hurdy Gurdy",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 16,
+      "name": "Ballgame",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 17,
+      "name": "Rock",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 18,
+      "name": "Oldies",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 19,
+      "name": "Wedding Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 20,
+      "name": "Harmonium",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 21,
+      "name": "Accordion",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 22,
+      "name": "Harmonica",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 23,
+      "name": "Bandoneon",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 24,
+      "name": "Classical Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 25,
+      "name": "Steel Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 26,
+      "name": "Jazz Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 27,
+      "name": "Clean Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 28,
+      "name": "Muted Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 29,
+      "name": "Rock Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 30,
+      "name": "Distorted Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 31,
+      "name": "Guitar Harmonics",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 32,
+      "name": "Jazz Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 33,
+      "name": "Electric Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 34,
+      "name": "Picked Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 35,
+      "name": "Fretless Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 36,
+      "name": "Slap Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 37,
+      "name": "Funky Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 38,
+      "name": "Synth Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 39,
+      "name": "Funky 80s Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 40,
+      "name": "Violin",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 41,
+      "name": "Viola",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 42,
+      "name": "Cello",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 43,
+      "name": "Contrabass",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 44,
+      "name": "Tremolo",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 45,
+      "name": "Pizzicato",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 46,
+      "name": "Orchestral Harp",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 47,
+      "name": "Kettledrums",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 48,
+      "name": "Strings",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 49,
+      "name": "Strings II",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 50,
+      "name": "Synth Strings",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 51,
+      "name": "80s Strings",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 52,
+      "name": "Choir",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 53,
+      "name": "Singer",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 54,
+      "name": "Ethereal Voice",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 55,
+      "name": "Hits",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 56,
+      "name": "Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 57,
+      "name": "Trombone",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 58,
+      "name": "Tuba",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 59,
+      "name": "Muted Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 60,
+      "name": "Horn",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 61,
+      "name": "Brass",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 62,
+      "name": "Synth Brass",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 63,
+      "name": "Popstar Brass",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 64,
+      "name": "Soprano Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 65,
+      "name": "Alto Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 66,
+      "name": "Tenor Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 67,
+      "name": "Baritone Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 68,
+      "name": "Hautbois",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 69,
+      "name": "English Horn",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 70,
+      "name": "Bassoon",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 71,
+      "name": "Clarinet",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 72,
+      "name": "Piccolo",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 73,
+      "name": "Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 74,
+      "name": "Recorder",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 75,
+      "name": "Pan Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 76,
+      "name": "Bottle Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 77,
+      "name": "Shakuhachi",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 78,
+      "name": "Whistler",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 79,
+      "name": "Clay Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 80,
+      "name": "Square Wave",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 81,
+      "name": "Saw Wave",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 82,
+      "name": "Calliope",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 83,
+      "name": "Chiff Lead",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 84,
+      "name": "Charang",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 85,
+      "name": "Solo Voice",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 86,
+      "name": "Fifths Lead",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 87,
+      "name": "Bass + Lead",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 88,
+      "name": "Fantasia",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 89,
+      "name": "Warm Pad",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 90,
+      "name": "Polysynth",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 91,
+      "name": "Choir Pad",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 92,
+      "name": "Bowed Pad",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 93,
+      "name": "Metal Pad",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 94,
+      "name": "Halo",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 95,
+      "name": "Sweep Pad",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 96,
+      "name": "Ice Rain",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 97,
+      "name": "Soundtrack",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 98,
+      "name": "Crystal",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 99,
+      "name": "Atmosphere",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 100,
+      "name": "Brightness",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 101,
+      "name": "Goblins",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 102,
+      "name": "Echo Drops",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 103,
+      "name": "Sci-Fi",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 104,
+      "name": "Sitar",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 105,
+      "name": "Banjo",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 106,
+      "name": "Shamisen",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 107,
+      "name": "Koto",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 108,
+      "name": "Kalimba",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 109,
+      "name": "Scotland",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 110,
+      "name": "Fiddle",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 111,
+      "name": "Shehnai",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 112,
+      "name": "Tinkle Bell",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 113,
+      "name": "Agogo",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 114,
+      "name": "Steel Drum",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 115,
+      "name": "Woodblock",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 116,
+      "name": "Taiko Drum",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 117,
+      "name": "Melodic Tom 1",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 118,
+      "name": "Electro Tom",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 119,
+      "name": "Reverse Cymbal",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 120,
+      "name": "Guitar Fret Noise",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 121,
+      "name": "Breath Noise",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 122,
+      "name": "Seashore",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 123,
+      "name": "Bird Tweet",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 124,
+      "name": "Telephone Ring",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 125,
+      "name": "Helicopter",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 126,
+      "name": "Applause",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 127,
+      "name": "BOOM!",
+      "gm_family": "Sound Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 128,
+      "program": 0,
+      "name": "Standard Kit",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    }
+  ],
+  "snes": [],
+  "wii": [
+    {
+      "bank": 0,
+      "program": 0,
+      "name": "Grand Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 1,
+      "name": "Bright Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 2,
+      "name": "Electric Grand P.",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 3,
+      "name": "Honky-Tonk Piano",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 4,
+      "name": "Electric Piano 1",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 5,
+      "name": "Electric Piano 2",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 6,
+      "name": "Harpsichord",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 7,
+      "name": "Clavinet",
+      "gm_family": "Piano",
+      "role_hint": "lead/pad"
+    },
+    {
+      "bank": 0,
+      "program": 8,
+      "name": "Celesta",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 9,
+      "name": "Glockenspiel",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 10,
+      "name": "Music Box",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 11,
+      "name": "Vibraphone",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 12,
+      "name": "Marimba",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 13,
+      "name": "Xylophone",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 14,
+      "name": "Tubular Bells",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 15,
+      "name": "Santur",
+      "gm_family": "Chromatic Percussion",
+      "role_hint": "lead/percussion"
+    },
+    {
+      "bank": 0,
+      "program": 16,
+      "name": "Electric Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 17,
+      "name": "Percussive Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 18,
+      "name": "Rock Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 19,
+      "name": "Church Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 20,
+      "name": "Reed Organ",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 21,
+      "name": "Accordion",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 22,
+      "name": "Harmonica",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 23,
+      "name": "Bandoneon",
+      "gm_family": "Organ",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 24,
+      "name": "Nylon-str. Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 25,
+      "name": "Steel-str. Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 26,
+      "name": "Jazz Gt.",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 27,
+      "name": "Clean Gt.",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 28,
+      "name": "Muted Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 29,
+      "name": "Overdriven Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 30,
+      "name": "Distortion Guitar",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 31,
+      "name": "Guitar Harmonics",
+      "gm_family": "Guitar",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 32,
+      "name": "Acoustic Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 33,
+      "name": "Fingered Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 34,
+      "name": "Picked Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 35,
+      "name": "Fretless Bass",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 36,
+      "name": "Slap Bass 1",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 37,
+      "name": "Slap Bass 2",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 38,
+      "name": "Synth Bass 1",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 39,
+      "name": "Synth Bass 2",
+      "gm_family": "Bass",
+      "role_hint": "bass"
+    },
+    {
+      "bank": 0,
+      "program": 40,
+      "name": "Violin",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 41,
+      "name": "Viola",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 42,
+      "name": "Cello",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 43,
+      "name": "Contrabass",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 44,
+      "name": "Tremolo Strings",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 45,
+      "name": "Pizzicato Strings",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 46,
+      "name": "Orchestral Harp",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 47,
+      "name": "Timpani",
+      "gm_family": "Strings",
+      "role_hint": "lead/bass"
+    },
+    {
+      "bank": 0,
+      "program": 48,
+      "name": "String Ensemble 1",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 49,
+      "name": "String Ensemble 2",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 50,
+      "name": "SynStrings 1",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 51,
+      "name": "SynStrings 2",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 52,
+      "name": "Choir Aahs",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 53,
+      "name": "Voice Oohs",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 54,
+      "name": "Synth Voice",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 55,
+      "name": "Orchestra Hit",
+      "gm_family": "Ensemble",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 56,
+      "name": "Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 57,
+      "name": "Trombone",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 58,
+      "name": "Tuba",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 59,
+      "name": "Muted Trumpet",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 60,
+      "name": "French Horn",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 61,
+      "name": "Brass Section",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 62,
+      "name": "SynBrass 1",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 63,
+      "name": "SynBrass 2",
+      "gm_family": "Brass",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 64,
+      "name": "Soprano Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 65,
+      "name": "Alto Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 66,
+      "name": "Tenor Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 67,
+      "name": "Baritone Sax",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 68,
+      "name": "Oboe",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 69,
+      "name": "English Horn",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 70,
+      "name": "Bassoon",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 71,
+      "name": "Clarinet",
+      "gm_family": "Reed",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 72,
+      "name": "Piccolo",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 73,
+      "name": "Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 74,
+      "name": "Recorder",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 75,
+      "name": "Pan Flute",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 76,
+      "name": "Bottle Blow",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 77,
+      "name": "Shakuhachi",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 78,
+      "name": "Whistle",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 79,
+      "name": "Ocarina",
+      "gm_family": "Pipe",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 80,
+      "name": "Lead 1 (Square)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 81,
+      "name": "Lead 2 (SawTooth)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 82,
+      "name": "Lead 3 (Callilope)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 83,
+      "name": "Lead 4 (Chiff)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 84,
+      "name": "Lead 5 (Charang)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 85,
+      "name": "Lead 6 (Voice)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 86,
+      "name": "Lead 7 (Fifths)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 87,
+      "name": "Lead 8 (Bass+Lead)",
+      "gm_family": "Synth Lead",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 88,
+      "name": "Pad 1 (NewAge)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 89,
+      "name": "Pad 2 (Warm)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 90,
+      "name": "Pad 3 (Polysynth)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 91,
+      "name": "Pad 4 (Choir)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 92,
+      "name": "Pad 5 (Bowed)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 93,
+      "name": "Pad 6 (Metallic)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 94,
+      "name": "Pad 7 (Halo)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 95,
+      "name": "Pad 8 (Sweep)",
+      "gm_family": "Synth Pad",
+      "role_hint": "pad"
+    },
+    {
+      "bank": 0,
+      "program": 96,
+      "name": "FX 1 (Ice Rain)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 97,
+      "name": "FX 2 (SoundTrack)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 98,
+      "name": "FX 3 (Crystal)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 99,
+      "name": "FX 4 (Atmosphere)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 100,
+      "name": "FX 5 (Brightness)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 101,
+      "name": "FX 6 (Goblins)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 102,
+      "name": "FX 7 (Echo Drops)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 103,
+      "name": "FX 8 (Star Theme)",
+      "gm_family": "Synth Effects",
+      "role_hint": "fx"
+    },
+    {
+      "bank": 0,
+      "program": 104,
+      "name": "Sitar",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 105,
+      "name": "Banjo",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 106,
+      "name": "Shamisen",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 107,
+      "name": "Koto",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 108,
+      "name": "Kalimba",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 109,
+      "name": "Bagpipe",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 110,
+      "name": "Fiddle",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 111,
+      "name": "Shanai",
+      "gm_family": "Ethnic",
+      "role_hint": "lead"
+    },
+    {
+      "bank": 0,
+      "program": 112,
+      "name": "Tinkle Bell",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 113,
+      "name": "Agogo",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 114,
+      "name": "Steel Drums",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 115,
+      "name": "Woodblock",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 0,
+      "program": 116,
+      "name": "Melodic Tom",
+      "gm_family": "Percussive",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 12,
+      "name": "Gamelan",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 16,
+      "name": "Detuned Organ",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 18,
+      "name": "Synth Organ",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 80,
+      "name": "Square HQ",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 1,
+      "program": 81,
+      "name": "Synth Saw :",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 2,
+      "program": 12,
+      "name": "Jegogan",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 0,
+      "name": "Standard",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 1,
+      "name": "Electronic",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 2,
+      "name": "GM",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    },
+    {
+      "bank": 128,
+      "program": 3,
+      "name": "Power",
+      "gm_family": "Drum Kit",
+      "role_hint": "percussion"
+    }
+  ]
+}
