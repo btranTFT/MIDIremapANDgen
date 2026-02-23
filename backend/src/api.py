@@ -217,9 +217,9 @@ async def remaster(
 
         output_midi = remap_midi(midi, soundfont_id=soundfont)
         stem = Path(input_basename).stem
-        safe_stem = "".join(c for c in stem if c.isalnum() or c in " ()-_")
+        safe_stem = "".join(c for c in stem if c.isalnum() or c in "-_")
         safe_stem = safe_stem[:200] or "song"
-        output_filename = f"{soundfont.upper()}remap{safe_stem}.mid"
+        output_filename = f"{soundfont.upper()}remap_{safe_stem}.mid"
         output_path = workspace / output_filename
         output_midi.save(str(output_path))
         processing_logs.append(log_event("info", "render", "MIDI remapped to soundfont"))

@@ -7,7 +7,13 @@ from pathlib import Path
 ALLOWED_MIDI_EXTENSIONS = (".mid", ".midi")
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MiB
 ALLOWED_UPLOAD_CONTENT_TYPES = frozenset(
-    {"audio/midi", "application/octet-stream", "audio/x-midi"}
+    {
+        "audio/midi",           # RFC 2361 standard
+        "audio/mid",            # Windows sends this (missing trailing 'i')
+        "audio/x-midi",         # Legacy variant
+        "application/x-midi",   # Sent by some Windows/IE browsers
+        "application/octet-stream",  # Generic binary (drag-and-drop, curl, etc.)
+    }
 )
 # request_id is workspace name: 32-char hex (uuid4.hex)
 REQUEST_ID_PATTERN = re.compile(r"^[a-f0-9]{32}$")

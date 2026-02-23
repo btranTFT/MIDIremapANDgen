@@ -2,32 +2,51 @@
 
 import mido
 
-from src.feature_extractor import extract_features_from_channel, get_active_channels
+from src.feature_extractor import extract_features_from_channel, get_active_channels, get_channel_programs
 from src.instrument_classifier import classify_channel
-from src.config import get_all_instruments, is_program_in_soundfont
+from src.config import get_all_instruments
 
 
-def _program_for_soundfont(gm_program: int, soundfont_id: str) -> int:
-    if is_program_in_soundfont(gm_program, soundfont_id):
-        return gm_program
-    allowed = get_all_instruments(soundfont_id)
-    for p in allowed:
-        if p != 128:
-            return p
-    return allowed[0] if allowed else 0
+def _nearest_program(original: int, soundfont_id: str) -> int:
+    """Map a GM program to the nearest available preset in the soundfont.
+
+    Searches the original program's GM family first (groups of 8), then
+    expands outward by family distance until a match is found.
+    """
+    available_set = set(p for p in get_all_instruments(soundfont_id) if p != 128)
+    available = sorted(available_set)
+    if not available:
+        return 0
+    if original in available_set:
+        return original
+    original_family = original // 8
+    for dist in range(1, 16):
+        for fam in [original_family - dist, original_family + dist]:
+            if 0 <= fam < 16:
+                for p in range(fam * 8, fam * 8 + 8):
+                    if p in available_set:
+                        return p
+    return available[0]
 
 
 def remap_midi(input_midi: mido.MidiFile, soundfont_id: str = "snes") -> mido.MidiFile:
     output_midi = mido.MidiFile(ticks_per_beat=input_midi.ticks_per_beat, type=1)
 
     active_channels = get_active_channels(input_midi)
+    original_programs = get_channel_programs(input_midi)
     channel_programs: dict[int, int] = {}
 
     for channel_num in active_channels:
-        features = extract_features_from_channel(input_midi, channel_num)
-        if features:
-            gm_program = classify_channel(channel_num, features, soundfont_id=soundfont_id)
-            channel_programs[channel_num] = _program_for_soundfont(gm_program, soundfont_id)
+        if channel_num == 9:
+            channel_programs[channel_num] = 128
+            continue
+        if channel_num in original_programs:
+            orig = original_programs[channel_num]
+            channel_programs[channel_num] = _nearest_program(orig, soundfont_id)
+        else:
+            features = extract_features_from_channel(input_midi, channel_num)
+            if features:
+                channel_programs[channel_num] = classify_channel(channel_num, features, soundfont_id=soundfont_id)
 
     for track in input_midi.tracks:
         new_track = mido.MidiTrack()
@@ -66,11 +85,19 @@ def get_channel_classifications(midi: mido.MidiFile, soundfont_id: str = "snes")
 
     classifications: dict[int, tuple[int, str]] = {}
     active_channels = get_active_channels(midi)
+    original_programs = get_channel_programs(midi)
 
     for channel_num in active_channels:
-        features = extract_features_from_channel(midi, channel_num)
-        if features:
-            gm_program = classify_channel(channel_num, features, soundfont_id=soundfont_id)
-            classifications[channel_num] = (gm_program, get_program_name(gm_program))
+        if channel_num == 9:
+            classifications[channel_num] = (128, get_program_name(128))
+            continue
+        if channel_num in original_programs:
+            prog = _nearest_program(original_programs[channel_num], soundfont_id)
+        else:
+            features = extract_features_from_channel(midi, channel_num)
+            if not features:
+                continue
+            prog = classify_channel(channel_num, features, soundfont_id=soundfont_id)
+        classifications[channel_num] = (prog, get_program_name(prog))
     return classifications
 

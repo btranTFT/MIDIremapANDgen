@@ -105,3 +105,13 @@ def get_active_channels(midi: mido.MidiFile) -> list[int]:
                 channels.add(msg.channel)
     return sorted(channels)
 
+
+def get_channel_programs(midi: mido.MidiFile) -> dict[int, int]:
+    """Return the last program_change value seen per channel (0-based GM program number)."""
+    programs: dict[int, int] = {}
+    for track in midi.tracks:
+        for msg in track:
+            if msg.type == "program_change" and hasattr(msg, "channel"):
+                programs[msg.channel] = msg.program
+    return programs
+
