@@ -4,6 +4,7 @@ Evaluation runner — RQ1 content-preservation metrics (Deliverable 5).
 Proposal citation:
     main.tex §Evaluation Table 2:
         "Melody contour similarity — Input vs. baseline MIDI — Content preservation"
+        "Pitch-interval contour similarity (PICS) — Input vs. baseline — Content preservation (RQ1)"
         "Onset alignment (F-measure / offset) — Note onsets, input vs. baseline — Rhythmic preservation"
     05-evaluation.tex §Quantitative Metrics §Content preservation (input vs. baseline remaster):
         "Applied between the input MIDI and the baseline remaster's MIDI..."
@@ -19,8 +20,9 @@ Usage (from repo root, with backend venv active):
 What it does:
     For every MIDI file in the corpus and every selected console style:
       1. Runs the baseline pipeline → produces remapped MIDI.
-      2. Computes melody_contour_similarity(input, remapped).
-      3. Computes onset_alignment_fmeasure(input, remapped, tolerance_s=0.05).
+      2. Computes melody_contour_similarity(input, remapped) — Pearson correlation.
+      3. Computes pics(input, remapped) — Pitch-Interval Contour Similarity (MIREX-style).
+      4. Computes onset_alignment_fmeasure(input, remapped, tolerance_s=0.05).
       4. Records results per file/style.
     Writes a CSV and prints a summary table.
 
@@ -49,6 +51,7 @@ except ImportError:
 
 from src.instrument_mapper import remap_midi
 from src.evaluation.melody_similarity import melody_contour_similarity
+from src.evaluation.pics import pics
 from src.evaluation.onset_alignment import onset_alignment_fmeasure
 
 VALID_STYLES = ["snes", "gba", "nds", "ps2", "wii"]
@@ -99,6 +102,7 @@ def evaluate_corpus(
                     "midi_file": midi_path.name,
                     "style": style,
                     "melody_similarity": "",
+                    "pics": "",
                     "onset_precision": "",
                     "onset_recall": "",
                     "onset_f_measure": "",
@@ -120,6 +124,13 @@ def evaluate_corpus(
                     row["error"] += f"|melody_sim:{exc}"
 
                 try:
+                    pics_score = pics(midi_path, remapped_path)
+                    row["pics"] = f"{pics_score:.4f}"
+                except Exception as exc:
+                    row["pics"] = "ERROR"
+                    row["error"] += f"|pics:{exc}"
+
+                try:
                     onset = onset_alignment_fmeasure(midi_path, remapped_path, tolerance_s)
                     row["onset_precision"] = f"{onset['precision']:.4f}"
                     row["onset_recall"] = f"{onset['recall']:.4f}"
@@ -129,6 +140,7 @@ def evaluate_corpus(
 
                 print(
                     f"sim={row['melody_similarity']}  "
+                    f"pics={row['pics']}  "
                     f"onset_F={row['onset_f_measure']}"
                     + (f"  [WARN: {row['error'].strip('|')}]" if row["error"] else "")
                 )
@@ -138,22 +150,24 @@ def evaluate_corpus(
 
     # Per-style summary
     print("\n── Content-Preservation Summary ─────────────────────────────────")
-    print(f"  {'Style':<6}  {'Melody sim (mean)':<20}  {'Onset F (mean)':<16}")
-    print("  " + "─" * 48)
+    print(f"  {'Style':<6}  {'Melody sim (mean)':<20}  {'PICS (mean)':<14}  {'Onset F (mean)':<16}")
+    print("  " + "─" * 64)
     for style in styles:
         style_rows = [r for r in rows if r["style"] == style and r["melody_similarity"] not in ("", "ERROR")]
         if style_rows:
             avg_sim = sum(float(r["melody_similarity"]) for r in style_rows) / len(style_rows)
+            pics_rows = [r for r in style_rows if r["pics"] not in ("", "ERROR")]
+            avg_pics = sum(float(r["pics"]) for r in pics_rows) / len(pics_rows) if pics_rows else float("nan")
             f_rows = [r for r in style_rows if r["onset_f_measure"] not in ("", "ERROR")]
             avg_f = sum(float(r["onset_f_measure"]) for r in f_rows) / len(f_rows) if f_rows else float("nan")
-            print(f"  {style.upper():<6}  {avg_sim:<20.4f}  {avg_f:<16.4f}")
+            print(f"  {style.upper():<6}  {avg_sim:<20.4f}  {avg_pics:<14.4f}  {avg_f:<16.4f}")
         else:
-            print(f"  {style.upper():<6}  {'no data':<20}  {'no data':<16}")
+            print(f"  {style.upper():<6}  {'no data':<20}  {'no data':<14}  {'no data':<16}")
 
     # Write CSV
     if output_csv:
         output_csv.parent.mkdir(parents=True, exist_ok=True)
-        fieldnames = ["midi_file", "style", "melody_similarity",
+        fieldnames = ["midi_file", "style", "melody_similarity", "pics",
                       "onset_precision", "onset_recall", "onset_f_measure", "error"]
         with open(output_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)

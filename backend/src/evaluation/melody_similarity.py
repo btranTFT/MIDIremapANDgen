@@ -5,7 +5,9 @@ Proposal citation:
     main.tex §Evaluation, Table 2: "Melody contour similarity — Input vs. baseline MIDI — Content preservation"
     05-evaluation.tex §Quantitative Metrics: "Correlation or distance between pitch contours
     (e.g., normalized pitch sequences or pitch-class histograms) of the dominant melody."
-    [CITATION NEEDED: melody contour similarity metric — scholar queries in REVIEWER-CRITIQUE.md §B.6]
+    Reference: MIREX Symbolic Melodic Similarity task (mirex_sms) — defines pitch-interval
+    contour similarity evaluation criteria.
+    URL: https://www.music-ir.org/mirex/wiki/Symbolic_Melodic_Similarity
 
 Method:
     1. Extract the dominant melody track from each MIDI file (highest-average-pitch active channel,

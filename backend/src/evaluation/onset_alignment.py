@@ -5,8 +5,10 @@ Proposal citation:
     main.tex §Evaluation, Table 2: "Onset alignment (F-measure / offset) — Note onsets, input vs. baseline"
     05-evaluation.tex §Quantitative Metrics: "Temporal offset or F-measure of note onsets
     within a fixed tolerance (e.g., 50–100 ms)."
-    [CITATION NEEDED: onset alignment evaluation — scholar queries in REVIEWER-CRITIQUE.md §B.6]
-    Reference methodology: Bello et al. (2005) \\cite{bello2005} for onset evaluation framework.
+    Reference: Bello, J. P. et al. (2005). "A tutorial on onset detection in music signals."
+    IEEE Transactions on Speech and Audio Processing, 13(5):1035–1047.
+    DOI: https://doi.org/10.1109/TSA.2005.851998
+    Proposal cite key: bello2005
 
 Method:
     1. Extract all note-on event times (in seconds) from both MIDI files.
