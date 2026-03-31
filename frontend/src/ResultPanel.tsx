@@ -6,6 +6,10 @@ export interface ProvenanceMetadata {
   input_filename?: string;
   mode?: string;
   style?: string;
+  source_style?: string | null;
+  preserve_compatible_programs?: boolean;
+  source_request_id?: string | null;
+  applied_overrides?: Record<string, unknown>;
   timestamp?: string;
   tool_versions?: Record<string, string>;
   checkpoint?: string | null;
@@ -132,7 +136,7 @@ export function ResultPanel({
         : 'idle';
 
   return (
-    <section className="panel">
+    <section className="panel panel--result">
       <div className="panel-heading-row">
         <h2>Result</h2>
         <span

@@ -35,9 +35,12 @@ export interface UploadPanelProps {
   file: File | null;
   soundfont: SoundfontId;
   mode: RemasterMode;
+  advancedEnabled: boolean;
+  advancedReady: boolean;
   description: string;
   loading: boolean;
   progress: number;
+  primaryActionLabel?: string;
   mlAvailableSoundfonts: string[];
   mlAvailable: boolean;
   maxUploadBytes: number;
@@ -46,15 +49,19 @@ export interface UploadPanelProps {
   onModeChange: (mode: RemasterMode) => void;
   onSoundfontChange: (id: SoundfontId) => void;
   onDescriptionChange: (value: string) => void;
+  onAdvancedToggle: (value: boolean) => void;
 }
 
 export function UploadPanel({
   file,
   soundfont,
   mode,
+  advancedEnabled,
+  advancedReady,
   description,
   loading,
   progress,
+  primaryActionLabel,
   mlAvailableSoundfonts,
   mlAvailable,
   onFileChange,
@@ -62,6 +69,7 @@ export function UploadPanel({
   onModeChange,
   onSoundfontChange,
   onDescriptionChange,
+  onAdvancedToggle,
   maxUploadBytes,
 }: UploadPanelProps) {
   const isMlDisabled = loading || !mlAvailable;
@@ -153,6 +161,28 @@ export function UploadPanel({
         </div>
       </div>
 
+      {mode === 'baseline' && (
+        <div className="upload-group field">
+          <span className="field__label">Baseline options</span>
+          <label className="advanced-checkbox advanced-checkbox--toggle">
+            <input
+              type="checkbox"
+              checked={advancedEnabled}
+              onChange={e => onAdvancedToggle(e.target.checked)}
+              disabled={loading}
+            />
+            <span>Enable advanced pre-remap MIDI editor</span>
+          </label>
+          <p className="hint hint--inline">
+            {advancedEnabled
+              ? advancedReady
+                ? 'Channel edits are ready. Generate again to apply them.'
+                : 'Analyze the MIDI first, then adjust channels before remapping.'
+              : 'Use the standard one-click baseline remap.'}
+          </p>
+        </div>
+      )}
+
       {mode === 'ml' && (
         <div className="upload-group upload-group--description field">
           <span className="field__label">Description (optional)</span>
@@ -193,7 +223,7 @@ export function UploadPanel({
           disabled={remasterDisabled}
           className="primary"
         >
-          {loading ? 'Processing…' : 'Remaster'}
+          {loading ? 'Processing…' : primaryActionLabel ?? 'Remaster'}
         </button>
         {!loading && !file && (
           <p className="hint hint--inline">Choose a MIDI file to enable.</p>

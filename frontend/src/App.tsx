@@ -1,6 +1,12 @@
 import React, { useCallback, useRef, useState } from 'react';
 
 import { API_BASE, request, toErrorDisplay } from './api';
+import {
+  AdvancedBaselinePanel,
+  getChannelDefaultOverride,
+  type AdvancedAnalysisResult,
+  type ChannelOverride,
+} from './AdvancedBaselinePanel';
 import { LogsPanel } from './LogsPanel';
 import type { LogEntry } from './LogsPanel';
 import type { RemasterResult } from './ResultPanel';
@@ -26,6 +32,10 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
   const [soundfont, setSoundfont] = useState<SoundfontId>('snes');
   const [mode, setMode] = useState<RemasterMode>('baseline');
+  const [advancedEnabled, setAdvancedEnabled] = useState(false);
+  const [analysis, setAnalysis] = useState<AdvancedAnalysisResult | null>(null);
+  const [channelOverrides, setChannelOverrides] = useState<Record<string, ChannelOverride>>({});
+  const [sourceStyle, setSourceStyle] = useState<SoundfontId | ''>('');
   const [description, setDescription] = useState<string>('');
   const [mlAvailableSoundfonts, setMlAvailableSoundfonts] = useState<string[]>(
     [],
@@ -81,6 +91,8 @@ function App() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setAnalysis(null);
+      setChannelOverrides({});
       setResult(null);
       setError(null);
       setLogs([]);
@@ -89,8 +101,110 @@ function App() {
     }
   };
 
+  const initializeOverrides = useCallback((data: AdvancedAnalysisResult) => {
+    const initial: Record<string, ChannelOverride> = {};
+    for (const channel of data.channels) {
+      initial[String(channel.channel)] = getChannelDefaultOverride(channel);
+    }
+    setChannelOverrides(initial);
+  }, []);
+
+  const handleAnalyze = async () => {
+    if (!file) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setLogs([]);
+    setProgress(0);
+
+    try {
+      addLog(
+        `Advanced baseline analysis | Soundfont: ${soundfont.toUpperCase()}`,
+        'info',
+        'analyze',
+      );
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('soundfont', soundfont);
+      if (sourceStyle) {
+        formData.append('source_style', sourceStyle);
+      }
+
+      const data = await request<
+        AdvancedAnalysisResult & {
+          logs?: Array<{ ts?: string; level?: string; step?: string; message?: string; debug?: string }>;
+        }
+      >('/api/remaster/analyze', {
+        method: 'POST',
+        body: formData,
+        timeoutMs: 120000,
+      });
+
+      setAnalysis(data);
+      initializeOverrides(data);
+      setProgress(100);
+      addLog('Advanced editor ready.', 'success', 'analyze');
+      if (Array.isArray(data.logs)) {
+        const mapped = data.logs
+          .filter(ev => ev && typeof ev.message === 'string')
+          .map(ev => ({
+            ts: ev.ts ?? '',
+            message: ev.message ?? 'Unknown message',
+            level: (ev.level === 'warn' ? 'warn' : ev.level === 'error' ? 'error' : 'info') as LogEntry['level'],
+            step: ev.step ?? '',
+            debug: ev.debug,
+          }));
+        setLogs(prev => [...prev, ...mapped]);
+      }
+    } catch (err) {
+      const display = toErrorDisplay(err);
+      setError(display);
+      addLog(display.detail, 'error', 'analyze', display.debug);
+      setProgress(0);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOverrideChange = useCallback((channel: number, patch: Partial<ChannelOverride>) => {
+    setChannelOverrides(prev => ({
+      ...prev,
+      [String(channel)]: {
+        ...(prev[String(channel)] ?? {
+          program: null,
+          transpose: 0,
+          velocity_scale: 1,
+          volume: null,
+          pan: null,
+          mute: false,
+          solo: false,
+          preserve_program_changes: true,
+        }),
+        ...patch,
+      },
+    }));
+  }, []);
+
+  const handleResetChannel = useCallback((channel: number) => {
+    setChannelOverrides(prev => {
+      const next = { ...prev };
+      const defaults = analysis?.channels.find(item => item.channel === channel);
+      if (defaults) next[String(channel)] = getChannelDefaultOverride(defaults);
+      return next;
+    });
+  }, [analysis]);
+
+  const handleResetAllOverrides = useCallback(() => {
+    if (!analysis) return;
+    initializeOverrides(analysis);
+  }, [analysis, initializeOverrides]);
+
   const handleUpload = async () => {
     if (!file) return;
+    if (mode === 'baseline' && advancedEnabled && !analysis) {
+      await handleAnalyze();
+      return;
+    }
     setLoading(true);
     setError(null);
     setResult(null);
@@ -108,8 +222,16 @@ function App() {
       setProgress(10);
 
       const formData = new FormData();
-      formData.append('file', file);
       formData.append('soundfont', soundfont);
+      if (sourceStyle) {
+        formData.append('source_style', sourceStyle);
+      }
+      if (mode === 'baseline' && advancedEnabled && analysis) {
+        formData.append('request_id', analysis.request_id);
+        formData.append('channel_overrides', JSON.stringify(channelOverrides));
+      } else {
+        formData.append('file', file);
+      }
       if (mode === 'ml' && description.trim()) {
         formData.append('description', description.trim());
       }
@@ -229,7 +351,9 @@ function App() {
         </div>
       </header>
 
-      <main className="app-main">
+      <main
+        className={`app-main ${mode === 'baseline' && advancedEnabled && analysis ? 'app-main--advanced-desktop' : ''}`}
+      >
         <nav
           className="app-main__mobile-tabs"
           aria-label="Sections"
@@ -267,18 +391,60 @@ function App() {
             file={file}
             soundfont={soundfont}
             mode={mode}
+            advancedEnabled={advancedEnabled}
+            advancedReady={Boolean(analysis)}
             description={description}
             loading={loading}
             progress={progress}
+            primaryActionLabel={
+              mode === 'baseline' && advancedEnabled
+                ? analysis
+                  ? 'Generate from edits'
+                  : 'Analyze MIDI'
+                : 'Remaster'
+            }
             mlAvailableSoundfonts={mlAvailableSoundfonts}
             mlAvailable={mlAvailable}
             maxUploadBytes={maxUploadBytes}
             onFileChange={handleFileChange}
             onUpload={handleUpload}
-            onModeChange={setMode}
-            onSoundfontChange={setSoundfont}
+            onModeChange={nextMode => {
+              setMode(nextMode);
+              if (nextMode !== 'baseline') {
+                setAdvancedEnabled(false);
+                setAnalysis(null);
+                setChannelOverrides({});
+              }
+            }}
+            onSoundfontChange={nextSoundfont => {
+              setSoundfont(nextSoundfont);
+              setAnalysis(null);
+              setChannelOverrides({});
+            }}
             onDescriptionChange={setDescription}
+            onAdvancedToggle={value => {
+              setAdvancedEnabled(value);
+              if (!value) {
+                setAnalysis(null);
+                setChannelOverrides({});
+              }
+            }}
           />
+          {mode === 'baseline' && advancedEnabled && (
+            <AdvancedBaselinePanel
+              analysis={analysis}
+              sourceStyle={sourceStyle}
+              onSourceStyleChange={value => {
+                setSourceStyle(value);
+                setAnalysis(null);
+                setChannelOverrides({});
+              }}
+              overrides={channelOverrides}
+              onOverrideChange={handleOverrideChange}
+              onResetChannel={handleResetChannel}
+              onResetAll={handleResetAllOverrides}
+            />
+          )}
         </div>
         <div
           className={`app-main__panel-wrap ${activeMobileTab === 'logs' ? 'app-main__panel-wrap--visible' : ''}`}
