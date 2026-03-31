@@ -23,6 +23,7 @@ Run from repo root:
 from __future__ import annotations
 
 import io
+import json
 import sys
 from pathlib import Path
 
@@ -119,6 +120,34 @@ class TestInstrumentMapper:
             f"Note count changed after remap: {orig_notes} → {remap_notes}"
         )
 
+    def test_remap_preserves_mid_song_program_changes(self, tmp_path):
+        """Program changes that occur after tick 0 must survive remapping."""
+        midi = mido.MidiFile(type=1, ticks_per_beat=480)
+        tempo = mido.MidiTrack()
+        tempo.append(mido.MetaMessage("set_tempo", tempo=500_000, time=0))
+        tempo.append(mido.MetaMessage("end_of_track", time=0))
+        midi.tracks.append(tempo)
+
+        track = mido.MidiTrack()
+        track.append(mido.Message("program_change", program=0, channel=0, time=0))
+        track.append(mido.Message("note_on", note=60, velocity=80, channel=0, time=0))
+        track.append(mido.Message("note_off", note=60, velocity=0, channel=0, time=240))
+        track.append(mido.Message("program_change", program=40, channel=0, time=0))
+        track.append(mido.Message("note_on", note=67, velocity=80, channel=0, time=0))
+        track.append(mido.Message("note_off", note=67, velocity=0, channel=0, time=240))
+        track.append(mido.MetaMessage("end_of_track", time=0))
+        midi.tracks.append(track)
+
+        remapped = remap_midi(midi, soundfont_id="gba", preserve_compatible_programs=True)
+        remapped_program_changes = [
+            msg.program
+            for remap_track in remapped.tracks
+            for msg in remap_track
+            if msg.type == "program_change" and getattr(msg, "channel", None) == 0
+        ]
+        assert len(remapped_program_changes) >= 2
+        assert remapped_program_changes[-1] == 40
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Evaluation metric tests  (RQ1 — content preservation)
@@ -209,7 +238,7 @@ class TestOnsetAlignment:
 
 try:
     from fastapi.testclient import TestClient
-    from src.api import app
+    from src.api import TEMP_DIR, app
     _FASTAPI_AVAILABLE = True
 except Exception:
     _FASTAPI_AVAILABLE = False
@@ -246,6 +275,155 @@ class TestAPIRemaster:
         ids = [sf["id"] for sf in body]
         for style in ["snes", "gba", "nds", "ps2", "wii"]:
             assert style in ids, f"{style} missing from /api/soundfonts"
+
+    def test_advanced_analyze_returns_editor_data(self, minimal_midi_path):
+        client = TestClient(app, raise_server_exceptions=True)
+        with open(minimal_midi_path, "rb") as f:
+            resp = client.post(
+                "/api/remaster/analyze",
+                data={"soundfont": "gba", "source_style": "gba"},
+                files={"file": ("test.mid", f, "audio/midi")},
+            )
+
+        assert resp.status_code == 200, resp.text[:300]
+        body = resp.json()
+        assert body.get("request_id")
+        assert isinstance(body.get("channels"), list)
+        assert len(body["channels"]) >= 1
+        assert isinstance(body.get("available_programs"), list)
+        assert body.get("preserve_compatible_programs") is True
+        assert body["channels"][0]["defaults"]["program"] is None
+
+    def test_advanced_remaster_accepts_request_id_and_overrides(self, minimal_midi_path):
+        client = TestClient(app, raise_server_exceptions=True)
+        with open(minimal_midi_path, "rb") as f:
+            analyze_resp = client.post(
+                "/api/remaster/analyze",
+                data={"soundfont": "gba", "source_style": "gba"},
+                files={"file": ("test.mid", f, "audio/midi")},
+            )
+        assert analyze_resp.status_code == 200, analyze_resp.text[:300]
+        analyze_body = analyze_resp.json()
+
+        overrides = {
+            "0": {
+                "program": 40,
+                "transpose": 12,
+                "velocity_scale": 0.8,
+                "volume": 96,
+                "pan": 80,
+                "mute": False,
+                "solo": False,
+                "preserve_program_changes": False,
+            }
+        }
+        remaster_resp = client.post(
+            "/api/remaster",
+            data={
+                "request_id": analyze_body["request_id"],
+                "soundfont": "gba",
+                "source_style": "gba",
+                "channel_overrides": __import__("json").dumps(overrides),
+            },
+        )
+
+        assert remaster_resp.status_code == 200, remaster_resp.text[:300]
+        remaster_body = remaster_resp.json()
+        metadata = remaster_body.get("metadata") or {}
+        assert metadata.get("source_request_id") == analyze_body["request_id"]
+        assert metadata.get("applied_overrides", {}).get("0", {}).get("program") == 40
+
+    def test_advanced_overrides_change_remastered_output(self, minimal_midi_path):
+        client = TestClient(app, raise_server_exceptions=True)
+        with open(minimal_midi_path, "rb") as f:
+            analyze_resp = client.post(
+                "/api/remaster/analyze",
+                data={"soundfont": "gba"},
+                files={"file": ("test.mid", f, "audio/midi")},
+            )
+        assert analyze_resp.status_code == 200, analyze_resp.text[:300]
+        analyze_body = analyze_resp.json()
+
+        plain_resp = client.post(
+            "/api/remaster",
+            data={
+                "request_id": analyze_body["request_id"],
+                "soundfont": "gba",
+            },
+        )
+        assert plain_resp.status_code == 200, plain_resp.text[:300]
+        plain_body = plain_resp.json()
+        plain_path = TEMP_DIR / plain_body["request_id"] / Path(plain_body["midi_url"]).name
+        plain_midi = mido.MidiFile(str(plain_path))
+        plain_notes = [
+            msg.note
+            for track in plain_midi.tracks
+            for msg in track
+            if msg.type == "note_on" and msg.velocity > 0 and getattr(msg, "channel", None) == 0
+        ]
+
+        overrides = {
+            "0": {
+                "program": 40,
+                "transpose": 12,
+                "velocity_scale": 0.5,
+                "volume": 96,
+                "pan": 80,
+                "mute": False,
+                "solo": False,
+                "preserve_program_changes": False,
+            }
+        }
+        override_resp = client.post(
+            "/api/remaster",
+            data={
+                "request_id": analyze_body["request_id"],
+                "soundfont": "gba",
+                "channel_overrides": json.dumps(overrides),
+            },
+        )
+        assert override_resp.status_code == 200, override_resp.text[:300]
+        override_body = override_resp.json()
+        override_path = TEMP_DIR / override_body["request_id"] / Path(override_body["midi_url"]).name
+        override_midi = mido.MidiFile(str(override_path))
+
+        override_notes = [
+            msg.note
+            for track in override_midi.tracks
+            for msg in track
+            if msg.type == "note_on" and msg.velocity > 0 and getattr(msg, "channel", None) == 0
+        ]
+        override_velocities = [
+            msg.velocity
+            for track in override_midi.tracks
+            for msg in track
+            if msg.type == "note_on" and msg.velocity > 0 and getattr(msg, "channel", None) == 0
+        ]
+        override_programs = [
+            msg.program
+            for track in override_midi.tracks
+            for msg in track
+            if msg.type == "program_change" and getattr(msg, "channel", None) == 0
+        ]
+        override_pan = [
+            msg.value
+            for track in override_midi.tracks
+            for msg in track
+            if msg.type == "control_change" and getattr(msg, "channel", None) == 0 and msg.control == 10
+        ]
+        override_volume = [
+            msg.value
+            for track in override_midi.tracks
+            for msg in track
+            if msg.type == "control_change" and getattr(msg, "channel", None) == 0 and msg.control == 7
+        ]
+
+        assert override_notes == [note + 12 for note in plain_notes]
+        assert override_velocities
+        assert all(velocity == 40 for velocity in override_velocities)
+        assert 40 in override_programs
+        assert 80 in override_pan
+        assert 96 in override_volume
 
     @pytest.mark.slow
     @pytest.mark.parametrize("style", VALID_STYLES)
@@ -305,3 +483,18 @@ class TestAPIRemaster:
         assert resp.status_code == 413
         body = resp.json()
         assert body.get("code") == "PAYLOAD_TOO_LARGE"
+
+    def test_remaster_records_source_style_metadata(self, minimal_midi_path):
+        client = TestClient(app, raise_server_exceptions=True)
+        with open(minimal_midi_path, "rb") as f:
+            resp = client.post(
+                "/api/remaster",
+                data={"soundfont": "gba", "source_style": "gba"},
+                files={"file": ("test.mid", f, "audio/midi")},
+            )
+
+        assert resp.status_code == 200, resp.text[:300]
+        body = resp.json()
+        metadata = body.get("metadata") or {}
+        assert metadata.get("source_style") == "gba"
+        assert metadata.get("preserve_compatible_programs") is True

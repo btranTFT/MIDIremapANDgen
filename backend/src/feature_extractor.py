@@ -12,6 +12,7 @@ class ChannelFeatures:
     channel_num: int
     pitch_min: int
     pitch_max: int
+    pitch_mean: float
     pitch_range: int
     avg_velocity: float
     velocity_std: float
@@ -82,6 +83,7 @@ def extract_features_from_channel(midi: mido.MidiFile, midi_channel: int) -> Opt
         channel_num=midi_channel,
         pitch_min=min(notes),
         pitch_max=max(notes),
+        pitch_mean=float(np.mean(notes)),
         pitch_range=max(notes) - min(notes),
         avg_velocity=float(np.mean(velocities)),
         velocity_std=float(np.std(velocities)),
@@ -114,4 +116,18 @@ def get_channel_programs(midi: mido.MidiFile) -> dict[int, int]:
             if msg.type == "program_change" and hasattr(msg, "channel"):
                 programs[msg.channel] = msg.program
     return programs
+
+
+def get_channels_with_program_changes(midi: mido.MidiFile) -> set[int]:
+    """Return channels that already carry explicit program-change events.
+
+    These channels should retain their time-varying patch changes instead of
+    being flattened to a single program for the full song.
+    """
+    channels: set[int] = set()
+    for track in midi.tracks:
+        for msg in track:
+            if msg.type == "program_change" and hasattr(msg, "channel"):
+                channels.add(msg.channel)
+    return channels
 

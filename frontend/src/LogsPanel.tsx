@@ -91,7 +91,7 @@ export const LogsPanel = React.memo(function LogsPanel({ logs }: LogsPanelProps)
   };
 
   return (
-    <section className="panel">
+    <section className="panel panel--logs">
       <h2>Logs</h2>
       <div className="logs-toolbar">
         <label className="logs-toolbar__autoscroll">

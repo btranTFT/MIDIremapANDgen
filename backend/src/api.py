@@ -15,12 +15,13 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 import mido
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 from src.audio_renderer import check_dependencies, get_tool_versions, render_midi_to_audio
 from src.instrument_mapper import get_channel_classifications, remap_midi
+from src.midi_edits import apply_channel_overrides, build_editor_analysis, parse_channel_overrides
 from src.schema import (
     error_body,
     is_allowed_content_type,
@@ -35,9 +36,14 @@ from src.soundfonts import VALID_IDS, get_soundfont_path, list_soundfonts as lis
 
 @asynccontextmanager
 async def _lifespan(app):
-    """Application lifespan: start background cleanup task."""
-    asyncio.create_task(cleanup_old_files())
+    """Application lifespan: start background cleanup task, cancel it on shutdown."""
+    task = asyncio.create_task(cleanup_old_files())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(title="MIDI Remastering API", version="0.4.0", lifespan=_lifespan)
@@ -140,21 +146,107 @@ def create_workspace() -> Path:
     return workspace
 
 
-@app.get("/api/soundfonts")
-async def list_soundfonts():
-    options = list_soundfonts_options()
-    return options
+def _normalize_soundfont_id(value: str | None, default: str = "snes") -> str:
+    soundfont = (value or "").strip().lower()
+    return soundfont if soundfont in VALID_IDS else default
 
 
-@app.post("/api/remaster")
-async def remaster(
-    background_tasks: BackgroundTasks,
+def _normalize_source_style(value: str | None) -> str | None:
+    source_style = (value or "").strip().lower() or None
+    if source_style not in VALID_IDS:
+        return None
+    return source_style
+
+
+async def _parse_uploaded_midi(file: UploadFile, workspace: Path) -> tuple[str, Path, mido.MidiFile]:
+    input_basename = safe_midi_input_basename(file.filename or "input.mid")
+    input_path = workspace / input_basename
+    content = b""
+    read_size = 0
+    chunk_size = 1024 * 1024
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        read_size += len(chunk)
+        if read_size > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                413,
+                detail=error_body(
+                    f"File exceeds maximum size ({DEFAULT_MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
+                    code="PAYLOAD_TOO_LARGE",
+                ),
+            )
+        content += chunk
+    input_path.write_bytes(content)
+    try:
+        midi = await asyncio.wait_for(
+            asyncio.to_thread(mido.MidiFile, input_path),
+            timeout=30.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            400,
+            detail=error_body(
+                "MIDI file parsing timed out. File may be corrupt or too complex.",
+                code="MIDI_PARSE_TIMEOUT",
+            ),
+        )
+    return input_basename, input_path, midi
+
+
+def _get_workspace(request_id: str) -> Path:
+    if not is_safe_request_id(request_id):
+        raise HTTPException(400, detail=error_body("Invalid request_id.", code="INVALID_REQUEST_ID"))
+    workspace = TEMP_DIR / request_id
+    if not workspace.exists() or not workspace.is_dir():
+        raise HTTPException(404, detail=error_body("Workspace not found or expired.", code="WORKSPACE_NOT_FOUND"))
+    return workspace
+
+
+def _get_workspace_metadata(workspace: Path) -> dict:
+    metadata_path = workspace / "metadata.json"
+    if not metadata_path.exists():
+        return {}
+    try:
+        return json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _get_workspace_input_path(workspace: Path) -> Path:
+    metadata = _get_workspace_metadata(workspace)
+    input_filename = metadata.get("input_filename")
+    if isinstance(input_filename, str):
+        candidate = workspace / safe_midi_input_basename(input_filename)
+        if candidate.exists():
+            return candidate
+
+    candidates = sorted(
+        p for p in workspace.glob("*.mid*")
+        if not p.name.upper().startswith(("SNESREMAP_", "GBAREMAP_", "NDSREMAP_", "PS2REMAP_", "WIIREMAP_", "ML_"))
+    )
+    if candidates:
+        return candidates[0]
+    raise HTTPException(404, detail=error_body("Original MIDI not found in workspace.", code="INPUT_MIDI_NOT_FOUND"))
+
+
+def _schedule_cleanup(workspace: Path):
+    async def delayed_cleanup():
+        await asyncio.sleep(1800)
+        shutil.rmtree(workspace, ignore_errors=True)
+
+    asyncio.create_task(delayed_cleanup())
+
+
+@app.post("/api/remaster/analyze")
+async def analyze_remaster(
     file: UploadFile = File(...),
     soundfont: str = Form("snes"),
+    source_style: str | None = Form(None),
 ):
-    soundfont = (soundfont or "").strip().lower()
-    if soundfont not in VALID_IDS:
-        soundfont = "snes"
+    soundfont = _normalize_soundfont_id(soundfont)
+    source_style = _normalize_source_style(source_style)
 
     if not is_allowed_extension(file.filename or ""):
         raise HTTPException(
@@ -174,48 +266,118 @@ async def remaster(
         )
 
     workspace = create_workspace()
-    input_basename = safe_midi_input_basename(file.filename or "input.mid")
-    input_path = workspace / input_basename
+    try:
+        input_basename, _input_path, midi = await _parse_uploaded_midi(file, workspace)
+        processing_logs = [
+            log_event("info", "upload", "File received and saved"),
+            log_event("info", "analyze", "MIDI analyzed for advanced editing"),
+        ]
+        analysis = build_editor_analysis(midi, soundfont, source_style=source_style)
+        provenance = {
+            "input_filename": input_basename,
+            "mode": "analysis",
+            "style": soundfont,
+            "source_style": source_style,
+            "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "tool_versions": get_tool_versions(),
+        }
+        (workspace / "metadata.json").write_text(json.dumps(provenance, indent=2), encoding="utf-8")
+        _schedule_cleanup(workspace)
+        return {
+            "request_id": workspace.name,
+            "soundfont": soundfont,
+            "source_style": source_style,
+            "input_filename": input_basename,
+            "channels": analysis["channels"],
+            "available_programs": analysis["available_programs"],
+            "preserve_compatible_programs": analysis["preserve_compatible_programs"],
+            "logs": processing_logs,
+            "metadata": provenance,
+        }
+    except HTTPException:
+        shutil.rmtree(workspace, ignore_errors=True)
+        raise
+    except Exception as e:
+        shutil.rmtree(workspace, ignore_errors=True)
+        raise HTTPException(
+            500,
+            detail=error_body(
+                "Analysis error. Check logs or try again.",
+                code="ANALYSIS_ERROR",
+                debug=str(e),
+            ),
+        )
+
+
+@app.get("/api/soundfonts")
+async def list_soundfonts():
+    options = list_soundfonts_options()
+    return options
+
+
+@app.post("/api/remaster")
+async def remaster(
+    file: UploadFile | None = File(None),
+    soundfont: str = Form("snes"),
+    source_style: str | None = Form(None),
+    request_id: str | None = Form(None),
+    channel_overrides: str | None = Form(None),
+):
+    soundfont = _normalize_soundfont_id(soundfont)
+    source_style = _normalize_source_style(source_style)
+    preserve_compatible_programs = source_style == soundfont
+
+    if file is None and not request_id:
+        raise HTTPException(
+            400,
+            detail=error_body("Provide a MIDI file or a request_id from analysis.", code="MISSING_INPUT"),
+        )
+
+    if file is not None and not is_allowed_extension(file.filename or ""):
+        raise HTTPException(
+            400,
+            detail=error_body(
+                f"Only {', '.join(('.mid', '.midi'))} files accepted",
+                code="INVALID_EXTENSION",
+            ),
+        )
+    if file is not None and not is_allowed_content_type(file.content_type):
+        raise HTTPException(
+            415,
+            detail=error_body(
+                "Content-Type not allowed for upload. Use audio/midi or application/octet-stream.",
+                code="INVALID_CONTENT_TYPE",
+            ),
+        )
+    workspace = create_workspace() if file is not None else _get_workspace(request_id or "")
 
     try:
-        content = b""
-        read_size = 0
-        chunk_size = 1024 * 1024
-        while True:
-            chunk = await file.read(chunk_size)
-            if not chunk:
-                break
-            read_size += len(chunk)
-            if read_size > MAX_UPLOAD_BYTES:
-                raise HTTPException(
-                    413,
-                    detail=error_body(
-                        f"File exceeds maximum size ({DEFAULT_MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
-                        code="PAYLOAD_TOO_LARGE",
-                    ),
-                )
-            content += chunk
-        input_path.write_bytes(content)
-        processing_logs = [log_event("info", "upload", "File received and saved")]
+        if file is not None:
+            input_basename, input_path, midi = await _parse_uploaded_midi(file, workspace)
+            processing_logs = [log_event("info", "upload", "File received and saved")]
+        else:
+            input_path = _get_workspace_input_path(workspace)
+            input_basename = input_path.name
+            midi = await asyncio.wait_for(asyncio.to_thread(mido.MidiFile, input_path), timeout=30.0)
+            processing_logs = [log_event("info", "upload", "Using analyzed MIDI workspace")]
 
-        # Parse MIDI with timeout to prevent hangs on corrupt files
-        try:
-            midi = await asyncio.wait_for(
-                asyncio.to_thread(mido.MidiFile, input_path),
-                timeout=30.0,
-            )
-        except asyncio.TimeoutError:
-            raise HTTPException(
-                400,
-                detail=error_body(
-                    "MIDI file parsing timed out. File may be corrupt or too complex.",
-                    code="MIDI_PARSE_TIMEOUT",
-                ),
-            )
-        classifications = get_channel_classifications(midi, soundfont_id=soundfont)
+        overrides = parse_channel_overrides(channel_overrides)
+        if overrides:
+            midi = apply_channel_overrides(midi, overrides)
+            processing_logs.append(log_event("info", "edit", f"Applied advanced edits to {len(overrides)} channel(s)"))
+
+        classifications = get_channel_classifications(
+            midi,
+            soundfont_id=soundfont,
+            preserve_compatible_programs=preserve_compatible_programs,
+        )
         processing_logs.append(log_event("info", "classify", "Channels classified"))
 
-        output_midi = remap_midi(midi, soundfont_id=soundfont)
+        output_midi = remap_midi(
+            midi,
+            soundfont_id=soundfont,
+            preserve_compatible_programs=preserve_compatible_programs,
+        )
         stem = Path(input_basename).stem
         safe_stem = "".join(c for c in stem if c.isalnum() or c in "-_")
         safe_stem = safe_stem[:200] or "song"
@@ -229,9 +391,17 @@ async def remaster(
         audio_error = None
         if soundfont_path.exists():
             try:
-                audio_path = await asyncio.wait_for(
-                    asyncio.to_thread(render_midi_to_audio, output_path, soundfont_path, "mp3"),
-                    timeout=240.0,
+                # Rely on subprocess-level timeouts inside render_midi_to_audio
+                # (FluidSynth: 120 s, LAME: 90 s) rather than asyncio.wait_for.
+                # On Python 3.12+, wait_for + to_thread hangs until the thread
+                # exits regardless of the timeout, making it ineffective here.
+                audio_path = await asyncio.to_thread(
+                    render_midi_to_audio,
+                    output_path,
+                    soundfont_path,
+                    "mp3",
+                    False,
+                    0.35,
                 )
                 audio_url = f"/download/audio/{workspace.name}/{audio_path.name}?sf={soundfont}"
                 processing_logs.append(log_event("info", "encode", "Audio rendered to MP3"))
@@ -244,22 +414,23 @@ async def remaster(
             audio_error = f"Soundfont not found: {soundfont_path.name}"
             processing_logs.append(log_event("warn", "encode", audio_error))
 
-        async def delayed_cleanup():
-            await asyncio.sleep(1800)
-            shutil.rmtree(workspace, ignore_errors=True)
-
-        background_tasks.add_task(delayed_cleanup)
+        _schedule_cleanup(workspace)
 
         tool_versions = get_tool_versions()
+        previous_metadata = _get_workspace_metadata(workspace)
         provenance = {
             "input_filename": input_basename,
             "mode": "baseline",
             "style": soundfont,
+            "source_style": source_style,
+            "preserve_compatible_programs": preserve_compatible_programs,
+            "source_request_id": request_id,
+            "applied_overrides": {str(k): v for k, v in overrides.items()},
             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "tool_versions": tool_versions,
         }
         metadata_path = workspace / "metadata.json"
-        metadata_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
+        metadata_path.write_text(json.dumps({**previous_metadata, **provenance}, indent=2), encoding="utf-8")
 
         return {
             "request_id": workspace.name,
@@ -276,10 +447,12 @@ async def remaster(
             "metadata": provenance,
         }
     except HTTPException:
-        shutil.rmtree(workspace, ignore_errors=True)
+        if file is not None:
+            shutil.rmtree(workspace, ignore_errors=True)
         raise
     except Exception as e:
-        shutil.rmtree(workspace, ignore_errors=True)
+        if file is not None:
+            shutil.rmtree(workspace, ignore_errors=True)
         raise HTTPException(
             500,
             detail=error_body(
