@@ -6,6 +6,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
+import mido
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 
 from src.audio_renderer import get_tool_versions, render_midi_to_audio
@@ -21,6 +22,18 @@ from src.schema import (
 from src.soundfonts import get_soundfont_path
 
 router = APIRouter()
+
+
+def _safe_midi_duration_seconds(midi_path: Path, fallback_seconds: float = 8.0) -> float:
+    """Return MIDI duration in seconds, falling back to a sane default on parse issues."""
+    try:
+        midi = mido.MidiFile(str(midi_path))
+        duration = float(getattr(midi, "length", 0.0) or 0.0)
+        if duration > 0.0:
+            return duration
+    except Exception:
+        pass
+    return fallback_seconds
 
 
 def get_ml_availability() -> bool:
@@ -140,6 +153,10 @@ async def remaster_ml(
             content += chunk
         input_path.write_bytes(content)
         processing_logs = [log_event("info", "upload", "File received and saved")]
+        midi_duration_s = _safe_midi_duration_seconds(input_path)
+        processing_logs.append(
+            log_event("info", "analyze", f"Input MIDI duration: {midi_duration_s:.2f}s")
+        )
 
         # Step 1: Render MIDI to WAV using soundfont (this is our melody prompt)
         soundfont_path = get_soundfont_path(soundfont)
@@ -172,13 +189,13 @@ async def remaster_ml(
         inference = get_inference_engine(soundfont)
 
         stem = Path(input_basename).stem
-        safe_stem = "".join(c for c in stem if c.isalnum() or c in " ()-_")[:200] or "song"
+        safe_stem = "".join(c if c.isalnum() or c in "-_" else "_" for c in stem).strip("_")[:200] or "song"
         output_filename = f"ML_{soundfont.upper()}_{safe_stem}.wav"
         output_wav_path = workspace / output_filename
 
         descriptions = [description] if description.strip() else ["video game music"]
 
-        # ML inference with timeout (600s = 10 min for generation)
+        # ML inference with timeout (1800s = 30 min; CPU inference is very slow)
         try:
             generated_path = await asyncio.wait_for(
                 asyncio.to_thread(
@@ -186,15 +203,16 @@ async def remaster_ml(
                     prompt_wav_path,
                     output_wav_path,
                     descriptions,
+                    midi_duration_s,
                 ),
-                timeout=600.0,
+                timeout=1800.0,
             )
             processing_logs.append(log_event("info", "encode", "MusicGen audio generated"))
         except asyncio.TimeoutError:
             raise HTTPException(
                 500,
                 detail=error_body(
-                    "ML generation timed out after 10 minutes. Try a shorter MIDI file or check GPU availability.",
+                    "ML generation timed out after 30 minutes. Try a shorter MIDI file or check GPU availability.",
                     code="ML_GENERATION_TIMEOUT",
                 ),
             )

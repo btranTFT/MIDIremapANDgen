@@ -140,8 +140,8 @@ for d in [PROJECT_DIR, DATA_DIR, OUTPUT_DIR, CHECKPOINT_DIR, LOGS_DIR]:
     d.mkdir(exist_ok=True, parents=True)
 
 # Create subdirectories
-(DATA_DIR / 'nesmdb').mkdir(exist_ok=True)
-(DATA_DIR / 'nesmdb_audio').mkdir(exist_ok=True)
+(DATA_DIR / 'nds').mkdir(exist_ok=True)
+(DATA_DIR / 'nds_audio').mkdir(exist_ok=True)
 (DATA_DIR / 'fma').mkdir(exist_ok=True)
 (DATA_DIR / 'processed').mkdir(exist_ok=True)
 (OUTPUT_DIR / 'finetuned_samples').mkdir(exist_ok=True)
@@ -154,13 +154,15 @@ print(f"✓ Training logs: {LOGS_DIR}")
 
 """
 
-# Download or Upload NESMDB dataset
+# Download or upload NDS dataset archive
 import subprocess
 import os
 from google.colab import files
 
 NDS_DIR = DATA_DIR / 'nds'
 NDS_ARCHIVE = NDS_DIR / "nds_audio.tar.gz"
+NDS_DIR.mkdir(exist_ok=True, parents=True)
+NDS_AUDIO_DIR = DATA_DIR / 'nds_audio'
 
 print("="*60)
 print("NDS DATASET SETUP")
@@ -169,13 +171,14 @@ print("\nOptions:")
 print("  1. Upload your tar.gz file (recommended if you have it)")
 print("  2. Use file from Google Drive")
 print("  3. Try automatic download")
+print("  4. Use existing audio files already in datasets/nds")
 print()
 
-choice = input("Choose option (1/2/3): ").strip()
+choice = input("Choose option (1/2/3/4): ").strip()
 
 if choice == "1":
     # Manual upload
-    print("\n Please upload your NESMDB tar.gz file...")
+    print("\n Please upload your NDS tar.gz file...")
     print("(Look for the file upload dialog)")
     uploaded = files.upload()
 
@@ -183,51 +186,54 @@ if choice == "1":
         # Move uploaded file to correct location
         uploaded_filename = list(uploaded.keys())[0]
         import shutil
-        shutil.move(uploaded_filename, str(NESMDB_ARCHIVE))
-        print(f"✓ File uploaded: {NESMDB_ARCHIVE}")
-        print(f"  Size: {NESMDB_ARCHIVE.stat().st_size / 1e6:.1f} MB")
+        shutil.move(uploaded_filename, str(NDS_ARCHIVE))
+        print(f"✓ File uploaded: {NDS_ARCHIVE}")
+        print(f"  Size: {NDS_ARCHIVE.stat().st_size / 1e6:.1f} MB")
     else:
         print("  No file uploaded")
 
 elif choice == "2":
     # From Google Drive
-    print("\n Looking for NESMDB file in Google Drive...")
+    print("\n Looking for NDS file in Google Drive...")
     print("Please enter the path to your tar.gz file in Google Drive")
-    print("Example: /content/drive/MyDrive/nesmdb_midi.tar.gz")
+    print("Example: /content/drive/MyDrive/nds_audio.tar.gz")
 
     drive_path = input("Path: ").strip()
 
     if os.path.exists(drive_path):
         import shutil
-        shutil.copy(drive_path, str(NESMDB_ARCHIVE))
+        shutil.copy(drive_path, str(NDS_ARCHIVE))
         print(f"✓ Copied from Google Drive")
-        print(f"  Size: {NESMDB_ARCHIVE.stat().st_size / 1e6:.1f} MB")
+        print(f"  Size: {NDS_ARCHIVE.stat().st_size / 1e6:.1f} MB")
     else:
         print(f"  File not found at: {drive_path}")
 
 else:
-    # Automatic download
-    print("\n⬇️  Attempting automatic download...")
-    NESMDB_URL = "http://deepyeti.ucsd.edu/cdonahue/nesmdb/nesmdb_midi.tar.gz"
-
-    result = subprocess.run(
-        ["wget", "-O", str(NESMDB_ARCHIVE), NESMDB_URL],
-        capture_output=True,
-        text=True
-    )
-
-    if result.returncode == 0 and NESMDB_ARCHIVE.exists():
-        print(f"✓ Downloaded successfully")
-        print(f"  Size: {NESMDB_ARCHIVE.stat().st_size / 1e6:.1f} MB")
+    if choice == "4":
+        print("\nUsing existing audio files from datasets/nds")
     else:
-        print(f"  Download failed: {result.stderr}")
+        # Automatic download
+        print("\n⬇️  Attempting automatic download...")
+        NDS_URL = "http://deepyeti.ucsd.edu/cdonahue/nesmdb/nesmdb_midi.tar.gz"
+
+        result = subprocess.run(
+            ["wget", "-O", str(NDS_ARCHIVE), NDS_URL],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode == 0 and NDS_ARCHIVE.exists():
+            print(f"✓ Downloaded successfully")
+            print(f"  Size: {NDS_ARCHIVE.stat().st_size / 1e6:.1f} MB")
+        else:
+            print(f"  Download failed: {result.stderr}")
 
 # Extract if archive exists
-if NESMDB_ARCHIVE.exists():
+if NDS_ARCHIVE.exists():
     print("\n Extracting archive...")
 
     extract_result = subprocess.run(
-        ["tar", "-xzf", str(NESMDB_ARCHIVE), "-C", str(NESMDB_DIR)],
+        ["tar", "-xzf", str(NDS_ARCHIVE), "-C", str(NDS_DIR)],
         capture_output=True,
         text=True
     )
@@ -240,26 +246,39 @@ if NESMDB_ARCHIVE.exists():
         # Try with Python tarfile
         import tarfile
         try:
-            with tarfile.open(NESMDB_ARCHIVE, 'r:gz') as tar:
-                tar.extractall(path=NESMDB_DIR)
+            with tarfile.open(NDS_ARCHIVE, 'r:gz') as tar:
+                tar.extractall(path=NDS_DIR)
             print("✓ Extracted with Python tarfile")
         except Exception as e:
             print(f"  Also failed: {e}")
 
 # Find MIDI files
 print("\n🔍 Searching for MIDI files...")
-midi_files = list(NESMDB_DIR.rglob('*.mid')) + list(NESMDB_DIR.rglob('*.midi'))
+midi_files = list(NDS_DIR.rglob('*.mid')) + list(NDS_DIR.rglob('*.midi'))
 print(f"Found {len(midi_files)} MIDI files")
 
+print("\n🔍 Searching for direct audio files...")
+direct_audio_files = []
+for ext in ('*.wav', '*.mp3', '*.flac', '*.ogg', '*.m4a'):
+    direct_audio_files.extend(NDS_DIR.rglob(ext))
+print(f"Found {len(direct_audio_files)} direct audio files")
+
+use_direct_audio = len(midi_files) == 0 and len(direct_audio_files) > 0
+
 if len(midi_files) == 0:
-    print("\n⚠️  No MIDI files found. Checking directory structure...")
-    print(f"\nContents of {NESMDB_DIR}:")
-    for item in NESMDB_DIR.iterdir():
-        if item.is_dir():
-            subfiles = list(item.rglob('*.mid'))
-            print(f"   {item.name}/ ({len(subfiles)} MIDI files)")
-        else:
-            print(f"   {item.name} ({item.stat().st_size / 1e6:.1f} MB)")
+    if use_direct_audio:
+        print("\n✓ No MIDI files found, but direct audio is available")
+        print("  Skipping MIDI conversion and training directly from uploaded audio")
+        NDS_AUDIO_DIR = NDS_DIR
+    else:
+        print("\n⚠️  No MIDI files found. Checking directory structure...")
+        print(f"\nContents of {NDS_DIR}:")
+        for item in NDS_DIR.iterdir():
+            if item.is_dir():
+                subfiles = list(item.rglob('*.mid'))
+                print(f"   {item.name}/ ({len(subfiles)} MIDI files)")
+            else:
+                print(f"   {item.name} ({item.stat().st_size / 1e6:.1f} MB)")
 else:
     print(f"\n✓ Ready to convert {len(midi_files)} MIDI files to audio")
 
@@ -276,13 +295,14 @@ if not os.path.exists(SOUNDFONT_PATH):
     print("Downloading soundfont...")
     subprocess.run(["wget", "-q", "-O", SOUNDFONT_PATH, SOUNDFONT_URL], check=False)
 
-NESMDB_AUDIO_DIR = DATA_DIR / 'nesmdb_audio'
+if 'NDS_AUDIO_DIR' not in globals():
+    NDS_AUDIO_DIR = DATA_DIR / 'nds_audio'
 
-# Convert ALL MIDI files (not just 100) for training
-existing_audio = len(list(NESMDB_AUDIO_DIR.glob('*.wav')))
-print(f"Existing audio files: {existing_audio}")
+# Convert MIDI files only when needed.
+existing_audio = len(list(NDS_AUDIO_DIR.glob('*.wav')))
+print(f"Existing converted audio files: {existing_audio}")
 
-if existing_audio < len(midi_files):
+if len(midi_files) > 0 and existing_audio < len(midi_files):
     print(f"Converting {len(midi_files)} MIDI files to audio...")
     print("This will take 10-20 minutes...")
 
@@ -291,7 +311,7 @@ if existing_audio < len(midi_files):
     failed = 0
 
     for midi_file in tqdm(midi_files):
-        output_file = NESMDB_AUDIO_DIR / f"{midi_file.stem}.wav"
+        output_file = NDS_AUDIO_DIR / f"{midi_file.stem}.wav"
         if not output_file.exists():
             try:
                 fs.midi_to_audio(str(midi_file), str(output_file))
@@ -302,8 +322,12 @@ if existing_audio < len(midi_files):
     print(f"✓ Converted {converted} new files")
     if failed > 0:
         print(f"  {failed} files failed to convert")
+elif len(midi_files) == 0:
+    print("Skipping MIDI conversion (training from direct audio files)")
 
-total_audio = len(list(NESMDB_AUDIO_DIR.glob('*.wav')))
+total_audio = 0
+for ext in ('*.wav', '*.mp3', '*.flac', '*.ogg', '*.m4a'):
+    total_audio += len(list(NDS_AUDIO_DIR.rglob(ext)))
 print(f"\n✓ Total audio files ready for training: {total_audio}")
 
 # Optional: Download FMA Small dataset (7.2 GB)
@@ -328,7 +352,7 @@ if download_fma:
     fma_files = list((FMA_DIR / "fma_small").rglob('*.mp3'))
     print(f"Found {len(fma_files)} FMA audio files")
 else:
-    print("⊘ Skipping FMA download - will train on NESMDB only")
+    print("⊘ Skipping FMA download - will train on NDS-only audio")
     fma_files = []
 
 """## 3. Prepare Training Dataset
@@ -412,12 +436,15 @@ if 'DATA_DIR' not in globals():
     LOGS_DIR = PROJECT_DIR / 'logs'
     print(f"✓ Directories re-initialized")
 
-if 'NESMDB_AUDIO_DIR' not in globals():
-    NESMDB_AUDIO_DIR = DATA_DIR / 'nesmdb_audio'
-    print(f"✓ NESMDB_AUDIO_DIR set to: {NESMDB_AUDIO_DIR}")
+if 'NDS_AUDIO_DIR' not in globals():
+    NDS_AUDIO_DIR = DATA_DIR / 'nds_audio'
+    print(f"✓ NDS_AUDIO_DIR set to: {NDS_AUDIO_DIR}")
 
 # Collect all audio files
-all_audio_files = list(NESMDB_AUDIO_DIR.glob('*.wav'))
+all_audio_files = []
+for ext in ('*.wav', '*.mp3', '*.flac', '*.ogg', '*.m4a'):
+    all_audio_files.extend(NDS_AUDIO_DIR.rglob(ext))
+all_audio_files = list(dict.fromkeys(all_audio_files))
 
 # Add FMA files if they were downloaded
 try:
@@ -433,7 +460,7 @@ print(f"Total training files: {len(all_audio_files)}")
 if len(all_audio_files) < 10:
     print("\n⚠️  WARNING: Very few training files found!")
     print("   Make sure MIDI files were converted to audio successfully.")
-    print(f"   Audio directory: {NESMDB_AUDIO_DIR}")
+    print(f"   Audio directory: {NDS_AUDIO_DIR}")
     print(f"   Files found: {len(all_audio_files)}")
 
 # Split into train/val
@@ -470,9 +497,10 @@ print(f"✓ Using device: {device}")
 lm = model.lm
 compression_model = model.compression_model
 
-# Move components to GPU (MusicGen wrapper doesn't have .to() method)
-lm = lm.to(device)
-compression_model = compression_model.to(device)
+# Move components to GPU and ensure float32 for training.
+# MusicGen loads weights in float16 but LayerNorm requires float32.
+lm = lm.to(device).float()
+compression_model = compression_model.to(device).float()
 
 print(f"✓ Model loaded on {device}")
 print(f"✓ Language model parameters: {sum(p.numel() for p in lm.parameters()) / 1e6:.1f}M")
@@ -550,6 +578,77 @@ import time
 from tqdm import tqdm
 from IPython.display import clear_output
 
+def lm_forward_logits(lm_model, input_codes):
+    """Run LM forward across AudioCraft API variants and return logits tensor."""
+    if not getattr(lm_model, '_nds_text_only_configured', False):
+        try:
+            lm_model.cfg_dropout = torch.nn.Identity()
+        except Exception:
+            pass
+        try:
+            lm_model.att_dropout = torch.nn.Identity()
+        except Exception:
+            pass
+
+        lm_model._nds_text_only_configured = True
+
+    batch_size = int(input_codes.shape[0])
+    conditions = []
+    sample_rate = 32000
+    # Shape must be [1, C, T] (3-D) as asserted by _collate_wavs in conditioners.py.
+    dummy_wav = torch.zeros(1, 1, sample_rate, device=input_codes.device)
+    dummy_wav_len = torch.tensor([sample_rate], device=input_codes.device)
+    for _ in range(batch_size):
+        cond = ConditioningAttributes(text={'description': 'nds soundtrack'})
+        if hasattr(cond, 'wav'):
+            cond.wav = {
+                # _collate_wavs uses .extend() on sample_rate, path, and seek_time,
+                # so each must be a list rather than a bare scalar.
+                'self_wav': (dummy_wav, dummy_wav_len, [sample_rate], [''], [0.0])
+            }
+        if hasattr(cond, 'joint_embed'):
+            cond.joint_embed = {}
+        if hasattr(cond, 'symbolic'):
+            cond.symbolic = {}
+        conditions.append(cond)
+
+    out = None
+    try:
+        out = lm_model.forward(input_codes, conditions=conditions)
+    except TypeError:
+        out = lm_model.forward(input_codes, conditions)
+
+    # Extract logits from various return formats
+    if out is None:
+        raise RuntimeError("LM forward pass returned None. Model may not have completed forward pass properly.")
+
+    if hasattr(out, 'logits'):
+        return out.logits
+    if isinstance(out, dict):
+        if 'logits' in out:
+            return out['logits']
+        if 'scores' in out:
+            return out['scores']
+    if isinstance(out, (tuple, list)):
+        if len(out) > 0:
+            return out[0]
+        else:
+            raise RuntimeError(f"LM forward returned empty sequence: {out}")
+
+    # If out is already a tensor, return it directly
+    if isinstance(out, torch.Tensor):
+        return out
+
+    raise RuntimeError(f"Unexpected return type from LM.forward(): {type(out)}, value: {out}")
+
+def normalize_codes(encoded_codes):
+    """Normalize encode output to [batch, codebooks, timesteps]."""
+    codes = encoded_codes[0] if isinstance(encoded_codes, (tuple, list)) else encoded_codes
+    if codes.dim() == 2:
+        # [B, T] -> [B, 1, T]
+        codes = codes.unsqueeze(1)
+    return codes
+
 def train_epoch(model, train_loader, optimizer, scheduler, device, config, epoch):
     """Train for one epoch"""
     lm.train()
@@ -564,16 +663,24 @@ def train_epoch(model, train_loader, optimizer, scheduler, device, config, epoch
 
             # Encode audio to tokens using compression model
             with torch.no_grad():
-                codes, _ = compression_model.encode(audio.unsqueeze(1))  # Add channel dim
+                encoded = compression_model.encode(audio.unsqueeze(1))  # Add channel dim
+                codes = normalize_codes(encoded)
 
             # Simple training approach: predict next token
-            # codes[0] shape: [batch, sequence_length]
-            input_codes = codes[0][:, :-1]  # All but last token
-            target_codes = codes[0][:, 1:]   # All but first token
+            # Preserve [B, K, T] for LM forward.
+            input_codes = codes[..., :-1]  # All but last token
+            target_codes = codes[..., 1:]  # All but first token
 
             # Forward pass through language model
-            # Note: This is a simplified approach - actual MusicGen training is more complex
-            logits = lm.forward(input_codes)
+            logits = lm_forward_logits(lm, input_codes)
+
+            # Validate logits
+            if logits is None:
+                raise ValueError(f"logits is None from lm_forward_logits")
+            if not isinstance(logits, torch.Tensor):
+                raise ValueError(f"logits is not a tensor - got type {type(logits)}, value: {logits}")
+            if logits.shape[0] != input_codes.shape[0]:
+                raise ValueError(f"logits batch size {logits.shape[0]} doesn't match input {input_codes.shape[0]}")
 
             # Compute loss
             loss = F.cross_entropy(
@@ -599,7 +706,9 @@ def train_epoch(model, train_loader, optimizer, scheduler, device, config, epoch
             total_loss += loss.item() * config['gradient_accumulation_steps']
 
         except Exception as e:
-            print(f"\nError in batch {batch_idx}: {e}")
+            print(f"\nError in batch {batch_idx}: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             continue
 
         # Clear GPU cache periodically
@@ -621,12 +730,13 @@ def validate(model, val_loader, device):
                 audio = batch['audio'].to(device)
 
                 # Encode audio
-                codes, _ = compression_model.encode(audio.unsqueeze(1))
+                encoded = compression_model.encode(audio.unsqueeze(1))
+                codes = normalize_codes(encoded)
 
                 # Forward pass
-                input_codes = codes[0][:, :-1]
-                target_codes = codes[0][:, 1:]
-                logits = lm.forward(input_codes)
+                input_codes = codes[..., :-1]
+                target_codes = codes[..., 1:]
+                logits = lm_forward_logits(lm, input_codes)
 
                 # Compute loss
                 loss = F.cross_entropy(
@@ -748,11 +858,11 @@ else:
 
     print(f"\nTotal size: {total_size:.1f} MB")
 
-    # Check if best_model.pt exists
-    best_model_path = CHECKPOINT_DIR / "best_model.pt"
+    # Check if best_model_nds.pt exists
+    best_model_path = CHECKPOINT_DIR / "best_model_nds.pt"
     if best_model_path.exists():
         best_size_mb = os.path.getsize(best_model_path) / (1024 * 1024)
-        print(f"  - best_model.pt ({best_size_mb:.1f} MB) [WILL KEEP]")
+        print(f"  - best_model_nds.pt ({best_size_mb:.1f} MB) [WILL KEEP]")
         total_size += best_size_mb
 
     if len(checkpoints) <= 1:
@@ -768,7 +878,7 @@ else:
 
         print(f"KEEP: {latest_checkpoint.name} (most recent)")
         if best_model_path.exists():
-            print(f"KEEP: best_model.pt (best validation loss)")
+            print(f"KEEP: best_model_nds.pt (best validation loss)")
 
         print(f"\nDELETE ({len(checkpoints_to_delete)} files):")
         space_to_free = 0
@@ -801,7 +911,7 @@ else:
             print(f"\nRemaining checkpoints:")
             print(f"  - {latest_checkpoint.name}")
             if best_model_path.exists():
-                print(f"  - best_model.pt")
+                print(f"  - best_model_nds.pt")
         else:
             print("\n❌ Cleanup cancelled.")
 
@@ -1028,7 +1138,7 @@ print("Loading original pre-trained model for comparison...")
 pretrained_model = MusicGen.get_pretrained('facebook/musicgen-melody')
 pretrained_model.set_generation_params(duration=15, temperature=1.0, cfg_coef=3.0)
 
-comparison_prompt = "8-bit chiptune video game music"
+comparison_prompt = "nintendo ds video game soundtrack"
 
 print(f"\nGenerating with prompt: {comparison_prompt}")
 print("\n[1/2] Pre-trained model...")

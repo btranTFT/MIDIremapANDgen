@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Optional
 
 import torch
+import numpy as np
+import soundfile as sf
 
 # Defer imports to allow startup without ML dependencies
 _AUDIOCRAFT_AVAILABLE = False
@@ -70,7 +72,7 @@ def get_model_config() -> dict:
     """Get ML model configuration."""
     return {
         "model_name": os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-melody"),
-        "duration": float(os.getenv("MUSICGEN_DURATION", "30.0")),
+        "duration": float(os.getenv("MUSICGEN_DURATION", "8.0")),
         "device": os.getenv("MUSICGEN_DEVICE", "cuda" if torch.cuda.is_available() else "cpu"),
         "top_k": int(os.getenv("MUSICGEN_TOP_K", "250")),
         "top_p": float(os.getenv("MUSICGEN_TOP_P", "0.0")),
@@ -157,6 +159,7 @@ class MusicGenInference:
         audio_prompt_path: Path,
         output_path: Path,
         descriptions: Optional[list[str]] = None,
+        generation_duration_s: Optional[float] = None,
     ) -> Path:
         """
         Generate audio conditioned on an audio prompt (melody).
@@ -174,15 +177,24 @@ class MusicGenInference:
         
         print(f"[ML] Generating audio conditioned on {audio_prompt_path.name}")
         
-        # Load audio prompt
-        import torchaudio
-        melody, sr = torchaudio.load(str(audio_prompt_path))
-        
+        # Load audio prompt via soundfile (avoids torchcodec/FFmpeg requirement)
+        from math import gcd
+        from scipy.signal import resample_poly
+
+        audio_np, sr = sf.read(str(audio_prompt_path), dtype="float32", always_2d=True)
+        # soundfile returns [samples, channels] -- transpose to [channels, samples]
+        melody = torch.from_numpy(audio_np.T)
+
         # Resample to model's expected sample rate if needed
         model_sr = self.model.sample_rate
         if sr != model_sr:
-            resampler = torchaudio.transforms.Resample(sr, model_sr)
-            melody = resampler(melody)
+            g = gcd(int(sr), int(model_sr))
+            melody_np = melody.numpy()
+            melody_np = np.stack([
+                resample_poly(ch, int(model_sr) // g, int(sr) // g)
+                for ch in melody_np
+            ])
+            melody = torch.from_numpy(melody_np.astype(np.float32))
         
         # Ensure stereo or mono as expected by model
         if melody.shape[0] > 2:
@@ -195,7 +207,16 @@ class MusicGenInference:
         if descriptions is None or not descriptions or descriptions[0] == "":
             descriptions = [f"{self.soundfont_id} style video game music"]
         
+        duration_s = float(generation_duration_s) if generation_duration_s and generation_duration_s > 0 else float(self.config["duration"])
+        self.model.set_generation_params(
+            duration=duration_s,
+            top_k=self.config["top_k"],
+            top_p=self.config["top_p"],
+            temperature=self.config["temperature"],
+        )
+
         print(f"[ML] Description: {descriptions[0]}")
+        print(f"[ML] Target duration: {duration_s:.2f}s")
         
         with torch.no_grad():
             generated = self.model.generate_with_chroma(
@@ -209,13 +230,20 @@ class MusicGenInference:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         # generated shape: (batch, channels, samples)
-        # Save first in batch
+        # Save first in batch using soundfile (avoids torchcodec dependency)
         audio_tensor = generated[0].cpu()
-        torchaudio.save(
-            str(output_path),
-            audio_tensor,
-            sample_rate=model_sr,
-        )
+        target_samples = int(round(duration_s * model_sr))
+        current_samples = int(audio_tensor.shape[-1])
+        if target_samples > 0 and current_samples != target_samples:
+            if current_samples > target_samples:
+                audio_tensor = audio_tensor[..., :target_samples]
+            else:
+                pad = target_samples - current_samples
+                audio_tensor = torch.nn.functional.pad(audio_tensor, (0, pad))
+
+        # soundfile expects [samples, channels]
+        audio_out = audio_tensor.numpy().T
+        sf.write(str(output_path), audio_out, model_sr)
         
         print(f"[ML] Generated audio saved to {output_path.name}")
         return output_path

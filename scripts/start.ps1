@@ -27,8 +27,8 @@
 #>
 
 param(
-    [string]$Backend  = (Join-Path $PSScriptRoot ".." "backend"),
-    [string]$Frontend = (Join-Path $PSScriptRoot ".." "frontend"),
+    [string]$Backend  = (Join-Path (Join-Path $PSScriptRoot "..") "backend"),
+    [string]$Frontend = (Join-Path (Join-Path $PSScriptRoot "..") "frontend"),
     [int]   $BackendPort = 8001
 )
 
@@ -54,10 +54,42 @@ if (-not (Test-Path (Join-Path $Frontend "node_modules"))) {
     Write-Warning "node_modules not found. Run: cd $Frontend && npm install"
 }
 if (-not (Test-Command "fluidsynth")) {
-    Write-Warning "fluidsynth not on PATH — audio rendering will be unavailable."
+    Write-Warning "fluidsynth not on PATH - audio rendering will be unavailable."
 }
 if (-not (Test-Command "lame")) {
-    Write-Warning "lame not on PATH — MP3 conversion will be unavailable."
+    Write-Warning "lame not on PATH - MP3 conversion will be unavailable."
+}
+
+# ── Auto-install ML dependencies if missing ───────────────────────────────
+$RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$mlTrainingDir = Join-Path $RepoRoot "MLtraining"
+if (-not (Test-Path $mlTrainingDir)) { New-Item -ItemType Directory -Path $mlTrainingDir -Force | Out-Null }
+
+$venvPip = Join-Path $Backend "venv\Scripts\pip.exe"
+$venvPython = Join-Path $Backend "venv\Scripts\python.exe"
+if (Test-Path $venvPip) {
+    Write-Host "[start.ps1] Checking ML dependencies..." -ForegroundColor Cyan
+
+    & $venvPython -c "import torch" 2>&1 | Out-Null
+    $torchOk = ($LASTEXITCODE -eq 0)
+
+    & $venvPython -c "from audiocraft.models import MusicGen" 2>&1 | Out-Null
+    $acOk = ($LASTEXITCODE -eq 0)
+
+    if (-not $torchOk) {
+        Write-Host "[start.ps1] Installing torch + torchaudio..." -ForegroundColor Yellow
+        & $venvPip install torch torchaudio --quiet
+    }
+    if (-not $acOk) {
+        Write-Host "[start.ps1] Installing audiocraft from source..." -ForegroundColor Yellow
+        & $venvPip install "git+https://github.com/facebookresearch/audiocraft.git" --quiet
+    }
+    if ($torchOk -and $acOk) {
+        Write-Host "[start.ps1] ML dependencies already installed." -ForegroundColor Green
+    }
+}
+else {
+    Write-Warning "Backend venv pip not found -- skipping ML auto-install."
 }
 
 # ── Launch backend ─────────────────────────────────────────────────────────
