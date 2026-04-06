@@ -40,6 +40,27 @@ if [[ ! -d "$FRONTEND/node_modules" ]]; then
     yellow "  [WARN] node_modules missing. Run: cd $FRONTEND && npm install"
 fi
 
+# ── Auto-install ML dependencies if missing ───────────────────────────────
+mkdir -p "$REPO_ROOT/MLtraining"
+if [[ -f "$BACKEND/venv/bin/pip" ]]; then
+    cyan "[start.sh] Checking ML dependencies..."
+    VENV_PY="$BACKEND/venv/bin/python"
+
+    if ! "$VENV_PY" -c "import torch" 2>/dev/null; then
+        yellow "[start.sh] Installing torch + torchaudio..."
+        "$BACKEND/venv/bin/pip" install -q torch torchaudio
+    fi
+
+    if ! "$VENV_PY" -c "from audiocraft.models import MusicGen" 2>/dev/null; then
+        yellow "[start.sh] Installing audiocraft from source..."
+        "$BACKEND/venv/bin/pip" install -q "git+https://github.com/facebookresearch/audiocraft.git"
+    fi
+
+    green "[start.sh] ML dependencies ready."
+else
+    yellow "  [WARN] Backend venv pip not found — skipping ML auto-install."
+fi
+
 # ── Start backend ──────────────────────────────────────────────────────────
 cyan "[start.sh] Starting backend on http://localhost:$BACKEND_PORT ..."
 (

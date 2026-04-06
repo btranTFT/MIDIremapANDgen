@@ -239,7 +239,7 @@ function App() {
       addLog('Uploading file to backend...', 'info', 'upload');
       setProgress(25);
 
-      const timeoutMs = mode === 'ml' ? 900000 : 300000;
+      const timeoutMs = mode === 'ml' ? 1800000 : 300000;
       // Use functional update to avoid stale closure, batch updates
       progressIntervalRef.current = setInterval(() => {
         setProgress(p => {

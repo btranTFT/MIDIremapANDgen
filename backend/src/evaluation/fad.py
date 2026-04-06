@@ -96,17 +96,24 @@ def _load_audio_as_mono(path: Path, target_sr: int = 16000) -> tuple[np.ndarray,
     Requires torchaudio. Returns (waveform, sample_rate).
     """
     import torch
-    import torchaudio
+    import soundfile as sf
+    from math import gcd
+    from scipy.signal import resample_poly
 
-    waveform, sr = torchaudio.load(str(path))
+    audio_np, sr = sf.read(str(path), dtype="float32", always_2d=True)
+    # soundfile returns [samples, channels]; transpose to [channels, samples]
+    waveform = audio_np.T
     # Mix to mono
     if waveform.shape[0] > 1:
-        waveform = waveform.mean(dim=0, keepdim=True)
+        waveform = waveform.mean(axis=0, keepdims=True)
     # Resample if needed
     if sr != target_sr:
-        resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=target_sr)
-        waveform = resampler(waveform)
-    return waveform.squeeze(0).numpy().astype(np.float32), target_sr
+        g = gcd(int(sr), int(target_sr))
+        waveform = np.stack([
+            resample_poly(ch, int(target_sr) // g, int(sr) // g)
+            for ch in waveform
+        ])
+    return waveform.squeeze(0).astype(np.float32), target_sr
 
 
 def _get_vggish_embed_fn() -> EmbedFn:
