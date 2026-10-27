@@ -1,0 +1,36 @@
+{
+  "format": "ai-audio-bank",
+  "version": 1,
+  "bankId": "demo-adventure",
+  "events": [
+    {
+      "id": "music.exploration",
+      "parameters": [
+        { "id": "intensity", "min": 0, "max": 1, "default": 0.25 }
+      ],
+      "layers": [
+        { "assetId": "exploration.base", "minIntensity": 0, "maxIntensity": 1 },
+        { "assetId": "exploration.percussion", "minIntensity": 0.5, "maxIntensity": 1 }
+      ],
+      "transitions": [
+        { "from": "exploration.base", "to": "exploration.percussion", "durationSeconds": 2 }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "exploration.base",
+      "path": "audio/exploration_base.ogg",
+      "codec": "ogg",
+      "sampleRate": 48000,
+      "channels": 2
+    },
+    {
+      "id": "exploration.percussion",
+      "path": "audio/exploration_percussion.ogg",
+      "codec": "ogg",
+      "sampleRate": 48000,
+      "channels": 2
+    }
+  ]
+}
