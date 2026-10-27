@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://midiremaster.example/schemas/audio-bank.schema.json",
+  "title": "AI Audio Runtime Bank",
+  "description": "Engine-neutral adaptive music assets exported for Unity and Unreal runtimes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "bankId", "events", "assets"],
+  "properties": {
+    "format": { "const": "ai-audio-bank" },
+    "version": { "type": "integer", "const": 1 },
+    "bankId": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "minLength": 1 },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/asset" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "minLength": 1
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "min", "max", "default"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "default": { "type": "number" }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetId", "minIntensity", "maxIntensity"],
+      "properties": {
+        "assetId": { "$ref": "#/$defs/id" },
+        "minIntensity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maxIntensity": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "durationSeconds"],
+      "properties": {
+        "from": { "$ref": "#/$defs/id" },
+        "to": { "$ref": "#/$defs/id" },
+        "durationSeconds": { "type": "number", "minimum": 0 }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "parameters", "layers", "transitions"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "parameters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/parameter" }
+        },
+        "layers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/layer" }
+        },
+        "transitions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/transition" }
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "codec", "sampleRate", "channels"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "path": { "type": "string", "minLength": 1 },
+        "codec": { "enum": ["wav", "ogg", "mp3"] },
+        "sampleRate": { "type": "integer", "enum": [22050, 44100, 48000, 96000] },
+        "channels": { "type": "integer", "enum": [1, 2] }
+      }
+    }
+  }
+}
