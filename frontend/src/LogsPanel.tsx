@@ -111,8 +111,8 @@ export const LogsPanel = React.memo(function LogsPanel({ logs }: LogsPanelProps)
           const level = logLevel(log);
           const time = formatLogTime(log);
           const title = log.debug ? `${log.message}\n\nDebug: ${log.debug}` : undefined;
-          // Use stable key: ts if available, otherwise index (for initial logs without ts)
-          const key = log.ts ?? log.timestamp ?? `log-${i}`;
+          // Backend events can share a timestamp; include the position to keep keys unique.
+          const key = `${log.ts ?? log.timestamp ?? 'log'}-${i}`;
           return (
             <LogItem
               key={key}

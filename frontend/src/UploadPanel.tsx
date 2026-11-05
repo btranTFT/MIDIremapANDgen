@@ -2,6 +2,7 @@ import React from 'react';
 
 export type SoundfontId = 'snes' | 'gba' | 'nds' | 'ps2' | 'wii';
 export type RemasterMode = 'baseline' | 'ml';
+export type MlPromptMode = 'text' | 'audio';
 
 const SOUNDFONTS: readonly { id: SoundfontId; label: string; note: string }[] = [
   { id: 'snes', label: 'SNES', note: '16‑bit strings' },
@@ -12,13 +13,13 @@ const SOUNDFONTS: readonly { id: SoundfontId; label: string; note: string }[] = 
 ];
 
 const ML_UNAVAILABLE_TOOLTIP =
-  'ML unavailable: backend does not have AudioCraft or checkpoints. Use Baseline or check API health.';
+  'ML unavailable: backend does not have AudioCraft. Use Baseline or check API health.';
 
 const MODE_BASELINE_TOOLTIP =
   'Remap MIDI channels to a console soundfont only. Fast, deterministic, no GPU. You get remapped MIDI + rendered audio.';
 
 const MODE_ML_TOOLTIP =
-  'Generate audio with MusicGen from your MIDI and optional description. Slower, needs backend model; can sound more expressive.';
+  'Generate 15 or 30 seconds with MusicGen from text, or optionally condition it on a MIDI audio prompt.'
 
 const SOUNDFONT_TOOLTIPS: Record<
   SoundfontId,
@@ -35,6 +36,8 @@ export interface UploadPanelProps {
   file: File | null;
   soundfont: SoundfontId;
   mode: RemasterMode;
+  mlPromptMode: MlPromptMode;
+  mlDuration: 15 | 30;
   advancedEnabled: boolean;
   advancedReady: boolean;
   description: string;
@@ -47,6 +50,8 @@ export interface UploadPanelProps {
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onUpload: () => void;
   onModeChange: (mode: RemasterMode) => void;
+  onMlPromptModeChange: (mode: MlPromptMode) => void;
+  onMlDurationChange: (duration: 15 | 30) => void;
   onSoundfontChange: (id: SoundfontId) => void;
   onDescriptionChange: (value: string) => void;
   onAdvancedToggle: (value: boolean) => void;
@@ -56,6 +61,8 @@ export function UploadPanel({
   file,
   soundfont,
   mode,
+  mlPromptMode,
+  mlDuration,
   advancedEnabled,
   advancedReady,
   description,
@@ -67,6 +74,8 @@ export function UploadPanel({
   onFileChange,
   onUpload,
   onModeChange,
+  onMlPromptModeChange,
+  onMlDurationChange,
   onSoundfontChange,
   onDescriptionChange,
   onAdvancedToggle,
@@ -74,11 +83,18 @@ export function UploadPanel({
 }: UploadPanelProps) {
   const isMlDisabled = loading || !mlAvailable;
   const fileTooLarge = file != null && file.size > maxUploadBytes;
-  const remasterDisabled = !file || loading || fileTooLarge;
+  const needsFile = mode === 'baseline' || mlPromptMode === 'audio';
+  const needsDescription = mode === 'ml';
+  const remasterDisabled =
+    (needsFile && !file) ||
+    (needsDescription && !description.trim()) ||
+    loading ||
+    fileTooLarge;
   const status =
     loading
       ? 'processing'
-      : file && !fileTooLarge
+      : ((needsFile && file && !fileTooLarge) ||
+          (!needsFile && description.trim()))
         ? 'ready'
         : 'idle';
   return (
@@ -96,12 +112,16 @@ export function UploadPanel({
               : 'Idle'}
         </span>
       </div>
-      <p className="hint">Accepts: .mid, .midi</p>
+      <p className="hint">
+        {mode === 'ml' && mlPromptMode === 'text'
+          ? 'Text prompt generation; MIDI is optional.'
+          : 'Accepts: .mid, .midi'}
+      </p>
 
       <div className="upload-group upload-group--mode field">
         <span className="field__label">How to remaster</span>
         <p className="hint hint--mode">
-          Baseline = soundfont remap only. ML = AI-generated audio from MIDI.
+          Baseline preserves the MIDI with new instruments. MusicGen creates a short audio idea from text or MIDI.
         </p>
         <div className="mode-toggle">
           <button
@@ -184,8 +204,27 @@ export function UploadPanel({
       )}
 
       {mode === 'ml' && (
+        <div className="upload-group field">
+          <span className="field__label">MusicGen input</span>
+          <div className="mode-toggle">
+            <button type="button" className={'mode-btn' + (mlPromptMode === 'text' ? ' mode-btn-active' : '')} onClick={() => onMlPromptModeChange('text')} disabled={loading}>
+              Text prompt
+            </button>
+            <button type="button" className={'mode-btn' + (mlPromptMode === 'audio' ? ' mode-btn-active' : '')} onClick={() => onMlPromptModeChange('audio')} disabled={loading}>
+              MIDI audio prompt
+            </button>
+          </div>
+          <p className="hint hint--inline">
+            {mlPromptMode === 'text'
+              ? 'Generate directly from a written description; MIDI is optional.'
+              : 'Render the uploaded MIDI first, then use it as MusicGen melody conditioning.'}
+          </p>
+        </div>
+      )}
+
+      {mode === 'ml' && (
         <div className="upload-group upload-group--description field">
-          <span className="field__label">Description (optional)</span>
+          <span className="field__label">Description</span>
           <input
             type="text"
             placeholder="e.g., video game music, upbeat chiptune..."
@@ -197,6 +236,17 @@ export function UploadPanel({
         </div>
       )}
 
+      {mode === 'ml' && (
+        <div className="upload-group field">
+          <span className="field__label">Output length</span>
+          <select className="text-input" value={mlDuration} onChange={e => onMlDurationChange(Number(e.target.value) as 15 | 30)} disabled={loading}>
+            <option value={15}>15 seconds</option>
+            <option value={30}>30 seconds</option>
+          </select>
+        </div>
+      )}
+
+      {(mode === 'baseline' || mlPromptMode === 'audio') && (
       <div className="upload-group upload-group--file field">
         <span className="field__label">MIDI file</span>
         <div className="file-picker">
@@ -212,6 +262,7 @@ export function UploadPanel({
           </span>
         </div>
       </div>
+      )}
       {fileTooLarge && (
         <p className="warning">
           File exceeds max size ({Math.round(maxUploadBytes / 1024 / 1024)} MB). Choose a smaller file.
@@ -225,10 +276,13 @@ export function UploadPanel({
         >
           {loading ? 'Processing…' : primaryActionLabel ?? 'Remaster'}
         </button>
-        {!loading && !file && (
+        {!loading && needsFile && !file && (
           <p className="hint hint--inline">Choose a MIDI file to enable.</p>
         )}
-        {!loading && file && !fileTooLarge && (
+        {!loading && !needsFile && !description.trim() && (
+          <p className="hint hint--inline">Enter a description to generate.</p>
+        )}
+        {!loading && needsFile && file && !fileTooLarge && (
           <p className="hint hint--inline">Ready to remaster.</p>
         )}
         {loading && (

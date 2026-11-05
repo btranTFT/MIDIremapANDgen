@@ -141,7 +141,7 @@ MIDIremapANDgen/
 ## Modes
 
 - **Baseline**: MIDI → analysis & remap → FluidSynth → WAV → LAME → MP3. No ML; only backend `requirements.txt` and FluidSynth/LAME needed.
-- **ML**: Same pipeline up to a WAV “prompt”; then MusicGen (with optional fine-tuned checkpoint) generates audio from that prompt. Requires ML dependencies and, for best results, checkpoints in `MLtraining/` (see [MLtraining/README.md](MLtraining/README.md)).
+- **ML**: MusicGen can generate from a text description alone, or optionally use the uploaded MIDI rendered as an audio melody prompt. Output duration is restricted to 15 or 30 seconds. Fine-tuned soundfont checkpoints are optional; without one, the base MusicGen model is used.
 
 ---
 
@@ -197,8 +197,9 @@ To use the **ML** mode in the app:
 2. Install backend deps including ML (see `backend/requirements.txt` comments or use a separate venv with `torch`, `torchaudio`, `audiocraft`).
 3. Run the backend with that Python:  
    `py -3.11 -m uvicorn src.api:app --host 0.0.0.0 --port 8001`
-4. Place fine-tuned checkpoints (e.g. `best_model_snes.pt`) in `MLtraining/` as described in [MLtraining/README.md](MLtraining/README.md).  
-   If no checkpoint is present for a soundfont, ML mode will still load the base MusicGen model but won’t use a custom style for that soundfont.
+4. Fine-tuned checkpoints such as `best_model_snes.pt` may be placed in `MLtraining/` as described in [MLtraining/README.md](MLtraining/README.md). They are optional; the base model supports text generation without a checkpoint.
+
+In the frontend, select **ML (MusicGen)**, choose **Text prompt** or **MIDI audio prompt**, enter a description, and select a 15- or 30-second output. Text prompt mode does not require a MIDI file. MIDI audio prompt mode preserves the previous behavior by rendering the uploaded MIDI and passing it to MusicGen as melody conditioning.
 
 Training (local or Colab) is documented in `MLtraining/` and uses the scripts in `MLtraining/` and `MLcolabtraining/`.
 
@@ -247,7 +248,7 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 # ML Configuration (optional, only needed for ML mode)
 # MUSICGEN_CHECKPOINT_PATH=path/to/checkpoint/{soundfont}.pt
 # MUSICGEN_MODEL_NAME=facebook/musicgen-melody
-# MUSICGEN_DURATION=30.0
+# MUSICGEN_DURATION=15.0
 # MUSICGEN_DEVICE=cuda
 # MUSICGEN_TOP_K=250
 # MUSICGEN_TOP_P=0.0
@@ -296,7 +297,7 @@ CORS_ORIGINS=https://your-app.example.com
 
 # Optional ML config
 MUSICGEN_DEVICE=cuda
-MUSICGEN_DURATION=30.0
+MUSICGEN_DURATION=15.0
 ```
 
 ### Frontend
@@ -436,7 +437,7 @@ VITE_API_BASE=https://api.your-app.example.com
 - MIDI file may be too long for ML generation
 - Check GPU availability (ML runs faster on CUDA)
 - Try Baseline mode for very long files
-- Reduce `MUSICGEN_DURATION` env var if you need shorter outputs
+- Choose the 15-second option for faster generation; requests are limited to 15 or 30 seconds
 
 ---
 

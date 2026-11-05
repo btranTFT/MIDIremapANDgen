@@ -13,6 +13,7 @@ import type { RemasterResult } from './ResultPanel';
 import { ResultPanel } from './ResultPanel';
 import {
   UploadPanel,
+  type MlPromptMode,
   type RemasterMode,
   type SoundfontId,
 } from './UploadPanel';
@@ -32,6 +33,8 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
   const [soundfont, setSoundfont] = useState<SoundfontId>('snes');
   const [mode, setMode] = useState<RemasterMode>('baseline');
+  const [mlPromptMode, setMlPromptMode] = useState<MlPromptMode>('text');
+  const [mlDuration, setMlDuration] = useState<15 | 30>(15);
   const [advancedEnabled, setAdvancedEnabled] = useState(false);
   const [analysis, setAnalysis] = useState<AdvancedAnalysisResult | null>(null);
   const [channelOverrides, setChannelOverrides] = useState<Record<string, ChannelOverride>>({});
@@ -200,7 +203,7 @@ function App() {
   }, [analysis, initializeOverrides]);
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file && (mode === 'baseline' || mlPromptMode === 'audio')) return;
     if (mode === 'baseline' && advancedEnabled && !analysis) {
       await handleAnalyze();
       return;
@@ -226,17 +229,27 @@ function App() {
       if (sourceStyle) {
         formData.append('source_style', sourceStyle);
       }
+      if (mode === 'ml') {
+        formData.append('prompt_mode', mlPromptMode);
+        formData.append('duration', String(mlDuration));
+      }
       if (mode === 'baseline' && advancedEnabled && analysis) {
         formData.append('request_id', analysis.request_id);
         formData.append('channel_overrides', JSON.stringify(channelOverrides));
-      } else {
+      } else if (file) {
         formData.append('file', file);
       }
       if (mode === 'ml' && description.trim()) {
         formData.append('description', description.trim());
       }
 
-      addLog('Uploading file to backend...', 'info', 'upload');
+      addLog(
+        mode === 'ml' && mlPromptMode === 'text'
+          ? 'Sending text prompt to backend...'
+          : 'Uploading file to backend...',
+        'info',
+        'upload',
+      );
       setProgress(25);
 
       const timeoutMs = mode === 'ml' ? 1800000 : 300000;
@@ -253,7 +266,7 @@ function App() {
         endpoint,
         mode,
         soundfont,
-        fileSize: file.size,
+        fileSize: file?.size ?? 0,
         timeoutMs,
       });
 
@@ -346,8 +359,17 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="brand-stack">
+          <div className="brand-kicker">AUDIO WORKSTATION / 01</div>
           <h1>MIDI REMASTER LAB</h1>
-          <p>Transform MIDI to Console Soundfonts.</p>
+          <p>Turn your MIDI into a playable console-era remix.</p>
+        </div>
+        <div className="header-console">
+          <div className="header-wave" aria-hidden="true">
+            {[3, 5, 8, 12, 7, 10, 4, 8, 5, 3].map((height, index) => (
+              <span key={index} style={{ height: `${height * 3}px` }} />
+            ))}
+          </div>
+          <span>READY TO REMASTER</span>
         </div>
       </header>
 
@@ -391,6 +413,8 @@ function App() {
             file={file}
             soundfont={soundfont}
             mode={mode}
+            mlPromptMode={mlPromptMode}
+            mlDuration={mlDuration}
             advancedEnabled={advancedEnabled}
             advancedReady={Boolean(analysis)}
             description={description}
@@ -416,6 +440,8 @@ function App() {
                 setChannelOverrides({});
               }
             }}
+            onMlPromptModeChange={setMlPromptMode}
+            onMlDurationChange={setMlDuration}
             onSoundfontChange={nextSoundfont => {
               setSoundfont(nextSoundfont);
               setAnalysis(null);

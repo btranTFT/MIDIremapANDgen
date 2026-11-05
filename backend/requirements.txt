@@ -10,6 +10,7 @@ mido>=1.3.0
 numpy>=1.24.0
 python-dotenv>=1.0.0
 scipy>=1.10.0
+soundfile>=0.12.1
 
 # ML generation (/api/remaster_ml). Use Python 3.11.
 torch>=2.0.0

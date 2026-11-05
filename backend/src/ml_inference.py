@@ -72,7 +72,7 @@ def get_model_config() -> dict:
     """Get ML model configuration."""
     return {
         "model_name": os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-melody"),
-        "duration": float(os.getenv("MUSICGEN_DURATION", "8.0")),
+        "duration": float(os.getenv("MUSICGEN_DURATION", "15.0")),
         "device": os.getenv("MUSICGEN_DEVICE", "cuda" if torch.cuda.is_available() else "cpu"),
         "top_k": int(os.getenv("MUSICGEN_TOP_K", "250")),
         "top_p": float(os.getenv("MUSICGEN_TOP_P", "0.0")),
@@ -91,6 +91,7 @@ class MusicGenInference:
         
         self.soundfont_id = soundfont_id
         self.model = None
+        self.checkpoint_loaded = False
         self.config = get_model_config()
         self.device = self.config["device"]
     
@@ -105,45 +106,34 @@ class MusicGenInference:
         # Load base pretrained model
         self.model = MusicGen.get_pretrained(self.config["model_name"], device=self.device)
         
-        # Load fine-tuned checkpoint for this soundfont
+        # Fine-tuned checkpoints are optional; base MusicGen supports text-only use.
         checkpoint_path = get_checkpoint_path(self.soundfont_id)
-        if not checkpoint_path or not checkpoint_path.exists():
-            raise FileNotFoundError(
-                f"Checkpoint not found for {self.soundfont_id.upper()} at {checkpoint_path}. "
-                f"Place best_model_{self.soundfont_id}.pt in MLtraining/ or set MUSICGEN_CHECKPOINT_PATH env var."
-            )
-        
-        print(f"[ML] Loading checkpoint from {checkpoint_path}")
-        raw = torch.load(checkpoint_path, map_location=self.device)
+        if checkpoint_path and checkpoint_path.exists():
+            print(f"[ML] Loading checkpoint from {checkpoint_path}")
+            raw = torch.load(checkpoint_path, map_location=self.device)
+            if isinstance(raw, dict) and "model_state_dict" in raw:
+                state_dict = raw["model_state_dict"]
+                epoch_info = f" (epoch {raw.get('epoch', '?')}, val_loss {raw.get('val_loss', '?'):.4f})" \
+                    if "val_loss" in raw else f" (epoch {raw.get('epoch', '?')})"
+                print(f"[ML] Checkpoint format: training wrapper{epoch_info}")
+            else:
+                state_dict = raw
+                print("[ML] Checkpoint format: raw state dict")
 
-        # The training script (musicgen_training_local.py) saves a wrapper dict:
-        #   {"epoch": int, "model_state_dict": OrderedDict, "val_loss": float, "config": dict}
-        # We must extract the actual state dict before calling load_state_dict.
-        # A raw state dict (no wrapper) is also handled for any legacy checkpoints.
-        if isinstance(raw, dict) and "model_state_dict" in raw:
-            state_dict = raw["model_state_dict"]
-            epoch_info = f" (epoch {raw.get('epoch', '?')}, val_loss {raw.get('val_loss', '?'):.4f})" \
-                if "val_loss" in raw else f" (epoch {raw.get('epoch', '?')})"
-            print(f"[ML] Checkpoint format: training wrapper{epoch_info}")
+            if hasattr(self.model, "lm") and hasattr(self.model.lm, "load_state_dict"):
+                result = self.model.lm.load_state_dict(state_dict, strict=False)
+                if result.missing_keys:
+                    print(f"[ML] WARNING: {len(result.missing_keys)} missing keys in checkpoint "
+                          f"(first 5: {result.missing_keys[:5]})")
+                if result.unexpected_keys:
+                    print(f"[ML] WARNING: {len(result.unexpected_keys)} unexpected keys in checkpoint "
+                          f"(first 5: {result.unexpected_keys[:5]})")
+                loaded = len(state_dict) - len(result.missing_keys)
+                self.checkpoint_loaded = True
+                print(f"[ML] Checkpoint loaded: {loaded}/{len(state_dict)} keys matched "
+                      f"for {self.soundfont_id.upper()} language model")
         else:
-            # Assume it's already a raw state dict
-            state_dict = raw
-            print("[ML] Checkpoint format: raw state dict")
-
-        # Apply to language model
-        if hasattr(self.model, "lm") and hasattr(self.model.lm, "load_state_dict"):
-            result = self.model.lm.load_state_dict(state_dict, strict=False)
-            if result.missing_keys:
-                print(f"[ML] WARNING: {len(result.missing_keys)} missing keys in checkpoint "
-                      f"(first 5: {result.missing_keys[:5]})")
-            if result.unexpected_keys:
-                print(f"[ML] WARNING: {len(result.unexpected_keys)} unexpected keys in checkpoint "
-                      f"(first 5: {result.unexpected_keys[:5]})")
-            loaded = len(state_dict) - len(result.missing_keys)
-            print(f"[ML] Checkpoint loaded: {loaded}/{len(state_dict)} keys matched "
-                  f"for {self.soundfont_id.upper()} language model")
-        else:
-            print("[ML] WARNING: Could not load checkpoint — model structure unexpected")
+            print(f"[ML] No checkpoint for {self.soundfont_id.upper()}; using base MusicGen")
         
         self.model.set_generation_params(
             duration=self.config["duration"],
@@ -245,6 +235,46 @@ class MusicGenInference:
         audio_out = audio_tensor.numpy().T
         sf.write(str(output_path), audio_out, model_sr)
         
+        print(f"[ML] Generated audio saved to {output_path.name}")
+        return output_path
+
+    def generate_from_text(
+        self,
+        output_path: Path,
+        descriptions: list[str],
+        generation_duration_s: float,
+    ) -> Path:
+        """Generate audio from text descriptions without an audio prompt."""
+        if self.model is None:
+            self.load_model()
+
+        duration_s = float(generation_duration_s)
+        self.model.set_generation_params(
+            duration=duration_s,
+            top_k=self.config["top_k"],
+            top_p=self.config["top_p"],
+            temperature=self.config["temperature"],
+        )
+        print(f"[ML] Text description: {descriptions[0]}")
+        print(f"[ML] Target duration: {duration_s:.2f}s")
+        with torch.no_grad():
+            generated = self.model.generate(
+                descriptions=descriptions,
+                progress=True,
+            )
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        audio_tensor = generated[0].cpu()
+        target_samples = int(round(duration_s * self.model.sample_rate))
+        current_samples = int(audio_tensor.shape[-1])
+        if current_samples != target_samples:
+            if current_samples > target_samples:
+                audio_tensor = audio_tensor[..., :target_samples]
+            else:
+                audio_tensor = torch.nn.functional.pad(
+                    audio_tensor, (0, target_samples - current_samples)
+                )
+        sf.write(str(output_path), audio_tensor.numpy().T, self.model.sample_rate)
         print(f"[ML] Generated audio saved to {output_path.name}")
         return output_path
 

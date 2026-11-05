@@ -37,22 +37,24 @@ def _safe_midi_duration_seconds(midi_path: Path, fallback_seconds: float = 8.0) 
 
 
 def get_ml_availability() -> bool:
-    """Return True if ML (AudioCraft + at least one checkpoint) is available."""
+    """Return True when AudioCraft is installed; checkpoints are optional."""
     deps = check_ml_dependencies()
-    return bool(deps.get("audiocraft") and deps.get("checkpoint_exists"))
+    return bool(deps.get("audiocraft"))
 
 
 def get_ml_available_styles() -> list:
-    """Return list of style IDs that have ML checkpoints."""
+    """Return styles available to ML, including base-model styles."""
     deps = check_ml_dependencies()
-    return deps.get("available_soundfonts", [])
+    if not deps.get("audiocraft"):
+        return []
+    return ["snes", "gba", "nds", "ps2", "wii"]
 
 
 @router.get("/ml/health")
 async def ml_health():
-    """Check ML dependencies and model availability for all soundfonts."""
+    """Check ML dependencies and optional style checkpoints."""
     deps = check_ml_dependencies()
-    status = "ready" if deps["audiocraft"] and deps["checkpoint_exists"] else "unavailable"
+    status = "ready" if deps["audiocraft"] else "unavailable"
     return {"status": status, "details": deps}
 
 
@@ -69,18 +71,14 @@ async def ml_available_soundfonts():
 @router.post("/remaster_ml")
 async def remaster_ml(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
     soundfont: str = Form("snes"),
     description: str = Form(""),
+    prompt_mode: str = Form("text"),
+    duration: int = Form(15),
 ):
     """
-    Generate audio using fine-tuned MusicGen model.
-    
-    Process:
-    1. Upload MIDI file
-    2. Render MIDI to WAV using chosen soundfont (this becomes the melody prompt)
-    3. Feed WAV prompt to MusicGen to generate new audio
-    4. Return generated MP3
+    Generate audio using MusicGen from text or an optional MIDI audio prompt.
     """
     from src.api import create_workspace
     
@@ -99,20 +97,16 @@ async def remaster_ml(
                 code="ML_UNAVAILABLE",
             ),
         )
-    if not deps["checkpoint_exists"]:
-        available_deps = check_ml_dependencies()
-        available = available_deps.get("available_soundfonts", [])
-        raise HTTPException(
-            503,
-            detail=error_body(
-                f"Model checkpoint not found for {soundfont.upper()}. "
-                f"Available soundfonts: {', '.join(available) if available else 'none'}. "
-                f"Place best_model_{soundfont}.pt in MLtraining/",
-                code="CHECKPOINT_NOT_FOUND",
-            ),
-        )
-
-    if not is_allowed_extension(file.filename or ""):
+    prompt_mode = (prompt_mode or "text").strip().lower()
+    if prompt_mode not in {"text", "audio"}:
+        raise HTTPException(400, detail=error_body("prompt_mode must be 'text' or 'audio'.", code="INVALID_PROMPT_MODE"))
+    if not description.strip():
+        raise HTTPException(400, detail=error_body("A text description is required.", code="MISSING_DESCRIPTION"))
+    if duration not in {15, 30}:
+        raise HTTPException(400, detail=error_body("duration must be 15 or 30 seconds.", code="INVALID_DURATION"))
+    if prompt_mode == "audio" and file is None:
+        raise HTTPException(400, detail=error_body("A MIDI file is required for audio prompt mode.", code="MISSING_INPUT"))
+    if file is not None and not is_allowed_extension(file.filename or ""):
         raise HTTPException(
             400,
             detail=error_body(
@@ -120,7 +114,7 @@ async def remaster_ml(
                 code="INVALID_EXTENSION",
             ),
         )
-    if not is_allowed_content_type(file.content_type):
+    if file is not None and not is_allowed_content_type(file.content_type):
         raise HTTPException(
             415,
             detail=error_body(
@@ -130,83 +124,61 @@ async def remaster_ml(
         )
 
     workspace = create_workspace()
-    input_basename = safe_midi_input_basename(file.filename or "input.mid")
+    input_basename = safe_midi_input_basename(file.filename or "input.mid") if file else "text_prompt.mid"
     input_path = workspace / input_basename
 
     try:
         content = b""
         read_size = 0
         chunk_size = 1024 * 1024
-        while True:
-            chunk = await file.read(chunk_size)
-            if not chunk:
-                break
-            read_size += len(chunk)
-            if read_size > MAX_UPLOAD_BYTES:
-                raise HTTPException(
-                    413,
-                    detail=error_body(
-                        f"File exceeds maximum size ({MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
-                        code="PAYLOAD_TOO_LARGE",
-                    ),
-                )
-            content += chunk
-        input_path.write_bytes(content)
-        processing_logs = [log_event("info", "upload", "File received and saved")]
-        midi_duration_s = _safe_midi_duration_seconds(input_path)
-        processing_logs.append(
-            log_event("info", "analyze", f"Input MIDI duration: {midi_duration_s:.2f}s")
-        )
-
-        # Step 1: Render MIDI to WAV using soundfont (this is our melody prompt)
-        soundfont_path = get_soundfont_path(soundfont)
-        if not soundfont_path.exists():
-            raise HTTPException(
-                503,
-                detail=error_body(
-                    f"Soundfont not found: {soundfont_path.name}",
-                    code="SOUNDFONT_NOT_FOUND",
-                ),
+        if file is not None:
+            while True:
+                chunk = await file.read(chunk_size)
+                if not chunk:
+                    break
+                read_size += len(chunk)
+                if read_size > MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        413,
+                        detail=error_body(
+                            f"File exceeds maximum size ({MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
+                            code="PAYLOAD_TOO_LARGE",
+                        ),
+                    )
+                content += chunk
+            input_path.write_bytes(content)
+        processing_logs = [
+            log_event(
+                "info",
+                "upload",
+                "MIDI file received and saved" if file is not None else "Text prompt received",
             )
-
-        # Step 1: Render MIDI to WAV with timeout
-        try:
-            prompt_wav_path = await asyncio.wait_for(
-                asyncio.to_thread(render_midi_to_audio, input_path, soundfont_path, "wav"),
-                timeout=240.0,
-            )
-            processing_logs.append(log_event("info", "render", "Prompt WAV rendered from MIDI"))
-        except asyncio.TimeoutError:
-            raise HTTPException(
-                500,
-                detail=error_body(
-                    "Audio rendering timed out. MIDI file may be too complex.",
-                    code="RENDER_TIMEOUT",
-                ),
-            )
-
-        # Step 2: Generate audio with MusicGen conditioned on the prompt (with timeout)
+        ]
+        descriptions = [description.strip()]
         inference = get_inference_engine(soundfont)
 
         stem = Path(input_basename).stem
         safe_stem = "".join(c if c.isalnum() or c in "-_" else "_" for c in stem).strip("_")[:200] or "song"
-        output_filename = f"ML_{soundfont.upper()}_{safe_stem}.wav"
+        output_filename = f"ML_{soundfont.upper()}_{'text' if prompt_mode == 'text' else safe_stem}.wav"
         output_wav_path = workspace / output_filename
 
-        descriptions = [description] if description.strip() else ["video game music"]
+        if prompt_mode == "audio":
+            midi_duration_s = _safe_midi_duration_seconds(input_path)
+            soundfont_path = get_soundfont_path(soundfont)
+            if not soundfont_path.exists():
+                raise HTTPException(503, detail=error_body(f"Soundfont not found: {soundfont_path.name}", code="SOUNDFONT_NOT_FOUND"))
+            prompt_wav_path = await asyncio.to_thread(render_midi_to_audio, input_path, soundfont_path, "wav")
+            processing_logs.append(log_event("info", "render", "MIDI rendered as audio prompt"))
 
-        # ML inference with timeout (1800s = 30 min; CPU inference is very slow)
         try:
-            generated_path = await asyncio.wait_for(
-                asyncio.to_thread(
-                    inference.generate_from_audio,
-                    prompt_wav_path,
-                    output_wav_path,
-                    descriptions,
-                    midi_duration_s,
-                ),
-                timeout=1800.0,
-            )
+            if prompt_mode == "audio":
+                generated_path = await asyncio.wait_for(asyncio.to_thread(
+                    inference.generate_from_audio, prompt_wav_path, output_wav_path, descriptions, duration
+                ), timeout=1800.0)
+            else:
+                generated_path = await asyncio.wait_for(asyncio.to_thread(
+                    inference.generate_from_text, output_wav_path, descriptions, duration
+                ), timeout=1800.0)
             processing_logs.append(log_event("info", "encode", "MusicGen audio generated"))
         except asyncio.TimeoutError:
             raise HTTPException(
@@ -240,7 +212,7 @@ async def remaster_ml(
             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
             "tool_versions": tool_versions,
             "checkpoint": checkpoint_path.name if checkpoint_path else None,
-            "fallback_to_base": False,
+            "fallback_to_base": checkpoint_path is None,
         }
         metadata_path = workspace / "metadata.json"
         metadata_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
@@ -250,6 +222,8 @@ async def remaster_ml(
             "audio_url": f"/download/audio/{workspace.name}/{output_mp3_path.name}",
             "prompt_soundfont": soundfont,
             "description": descriptions[0],
+            "prompt_mode": prompt_mode,
+            "duration_seconds": duration,
             "method": "musicgen_ml",
             "logs": processing_logs,
             "metadata_url": f"/download/metadata/{workspace.name}",

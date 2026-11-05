@@ -26,6 +26,8 @@ export interface RemasterResult {
   prompt_soundfont?: string;
   method?: string;
   description?: string;
+  prompt_mode?: 'text' | 'audio';
+  duration_seconds?: 15 | 30;
   metadata_url?: string;
   metadata?: ProvenanceMetadata;
   classifications?: {
@@ -373,9 +375,19 @@ export function ResultPanel({
         </>
       )}
       {!error && !result && !loading && (
-        <p className="hint result-idle">
-          Choose a MIDI file and tap Remaster to see your result here.
-        </p>
+        <div className="result-empty">
+          <div className="result-empty__orb" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div>
+            <strong>Your remaster will land here</strong>
+            <p className="hint result-idle">
+              Pick a soundfont, drop in a MIDI, and hit Remaster to hear the transformation.
+            </p>
+          </div>
+        </div>
       )}
       {!error && !result && loading && (
         <p className="hint result-idle">
