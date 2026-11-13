@@ -1,8 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import { API_BASE, request, toErrorDisplay } from './api';
 import {
-  AdvancedBaselinePanel,
   getChannelDefaultOverride,
   type AdvancedAnalysisResult,
   type ChannelOverride,
@@ -11,6 +10,7 @@ import { LogsPanel } from './LogsPanel';
 import type { LogEntry } from './LogsPanel';
 import type { RemasterResult } from './ResultPanel';
 import { ResultPanel } from './ResultPanel';
+import { SoundfontVisualizerPanel, type VisualizationPayload } from './SoundfontVisualizerPanel';
 import {
   UploadPanel,
   type MlPromptMode,
@@ -27,6 +27,15 @@ interface HealthCapabilities {
   available_styles?: string[];
   ml_available_styles?: string[];
   max_upload_bytes?: number;
+  torch_available?: boolean;
+  torch_error?: string | null;
+  audiocraft_available?: boolean;
+  audiocraft_error?: string | null;
+  checkpoint_available?: boolean;
+  checkpoint_path?: string | null;
+  ml_reason?: string;
+  recommended_action?: string;
+  reason?: string;
 }
 
 function App() {
@@ -44,18 +53,37 @@ function App() {
     [],
   );
   const [mlAvailable, setMlAvailable] = useState(false);
+  const [mlUnavailableReason, setMlUnavailableReason] = useState('ML capability diagnostics are unavailable.');
+  const [mlRecommendedAction, setMlRecommendedAction] = useState('');
+  const [torchError, setTorchError] = useState<string | null>(null);
+  const [audiocraftError, setAudiocraftError] = useState<string | null>(null);
   const [maxUploadBytes, setMaxUploadBytes] = useState(DEFAULT_MAX_UPLOAD_BYTES);
   const [result, setResult] = useState<RemasterResult | null>(null);
+  const [visualization, setVisualization] = useState<VisualizationPayload | null>(null);
+  const [playbackTime, setPlaybackTime] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<import('./api').ErrorDisplay | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [progress, setProgress] = useState(0);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [activeMobileTab, setActiveMobileTab] = useState<
     'upload' | 'logs' | 'result'
   >('upload');
-  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null,
-  );
+
+  React.useLayoutEffect(() => {
+    const savedTheme = window.localStorage.getItem('midi-remaster-theme');
+    const nextTheme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
+    document.documentElement.dataset.theme = nextTheme;
+    setTheme(nextTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(previous => {
+      const next = previous === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      window.localStorage.setItem('midi-remaster-theme', next);
+      return next;
+    });
+  };
 
   // Single capabilities source: GET /health. On failure (offline/timeout), ML stays disabled.
   React.useEffect(() => {
@@ -67,6 +95,18 @@ function App() {
         if (typeof data.ml_available === 'boolean') {
           setMlAvailable(data.ml_available);
         }
+        if (typeof data.ml_reason === 'string' || typeof data.reason === 'string') {
+          setMlUnavailableReason(data.ml_reason ?? data.reason ?? '');
+        }
+        if (typeof data.recommended_action === 'string') {
+          setMlRecommendedAction(data.recommended_action);
+        }
+        if (typeof data.torch_error === 'string') {
+          setTorchError(data.torch_error);
+        }
+        if (typeof data.audiocraft_error === 'string') {
+          setAudiocraftError(data.audiocraft_error);
+        }
         if (Array.isArray(data.ml_available_styles)) {
           setMlAvailableSoundfonts(data.ml_available_styles);
         }
@@ -75,7 +115,7 @@ function App() {
         }
       })
       .catch(() => {
-        // Offline, timeout, or parse error: leave mlAvailable false, mlAvailableSoundfonts []
+        setMlUnavailableReason(`Backend health could not be reached at ${API_BASE}. Start the backend and try again.`);
       });
   }, []);
 
@@ -97,9 +137,10 @@ function App() {
       setAnalysis(null);
       setChannelOverrides({});
       setResult(null);
+      setVisualization(null);
+      setPlaybackTime(0);
       setError(null);
       setLogs([]);
-      setProgress(0);
       addLog(`Selected file: ${e.target.files[0].name}`, 'info');
     }
   };
@@ -118,7 +159,6 @@ function App() {
     setError(null);
     setResult(null);
     setLogs([]);
-    setProgress(0);
 
     try {
       addLog(
@@ -145,7 +185,6 @@ function App() {
 
       setAnalysis(data);
       initializeOverrides(data);
-      setProgress(100);
       addLog('Advanced editor ready.', 'success', 'analyze');
       if (Array.isArray(data.logs)) {
         const mapped = data.logs
@@ -163,44 +202,10 @@ function App() {
       const display = toErrorDisplay(err);
       setError(display);
       addLog(display.detail, 'error', 'analyze', display.debug);
-      setProgress(0);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleOverrideChange = useCallback((channel: number, patch: Partial<ChannelOverride>) => {
-    setChannelOverrides(prev => ({
-      ...prev,
-      [String(channel)]: {
-        ...(prev[String(channel)] ?? {
-          program: null,
-          transpose: 0,
-          velocity_scale: 1,
-          volume: null,
-          pan: null,
-          mute: false,
-          solo: false,
-          preserve_program_changes: true,
-        }),
-        ...patch,
-      },
-    }));
-  }, []);
-
-  const handleResetChannel = useCallback((channel: number) => {
-    setChannelOverrides(prev => {
-      const next = { ...prev };
-      const defaults = analysis?.channels.find(item => item.channel === channel);
-      if (defaults) next[String(channel)] = getChannelDefaultOverride(defaults);
-      return next;
-    });
-  }, [analysis]);
-
-  const handleResetAllOverrides = useCallback(() => {
-    if (!analysis) return;
-    initializeOverrides(analysis);
-  }, [analysis, initializeOverrides]);
 
   const handleUpload = async () => {
     if (!file && (mode === 'baseline' || mlPromptMode === 'audio')) return;
@@ -211,8 +216,9 @@ function App() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setVisualization(null);
+    setPlaybackTime(0);
     setLogs([]);
-    setProgress(0);
 
     try {
       const endpoint = mode === 'ml' ? '/api/remaster_ml' : '/api/remaster';
@@ -222,7 +228,6 @@ function App() {
         'upload',
       );
       addLog('Starting upload...', 'info', 'upload');
-      setProgress(10);
 
       const formData = new FormData();
       formData.append('soundfont', soundfont);
@@ -250,17 +255,8 @@ function App() {
         'info',
         'upload',
       );
-      setProgress(25);
 
       const timeoutMs = mode === 'ml' ? 1800000 : 300000;
-      // Use functional update to avoid stale closure, batch updates
-      progressIntervalRef.current = setInterval(() => {
-        setProgress(p => {
-          const next = p < 95 ? p + 1 : p;
-          return next;
-        });
-      }, 2000);
-
       // Debug logging: log request details
       console.log('[Remaster] Starting request:', {
         endpoint,
@@ -286,23 +282,6 @@ function App() {
         timeoutMs,
       });
 
-      // Debug logging: log response shape for troubleshooting
-      console.log('[Remaster] Response received:', {
-        hasRequestId: !!data.request_id,
-        hasMidiUrl: !!data.midi_url,
-        hasAudioUrl: !!data.audio_url,
-        hasLogs: Array.isArray(data.logs),
-        logsCount: Array.isArray(data.logs) ? data.logs.length : 0,
-        hasClassifications: !!data.classifications,
-        hasMetadata: !!data.metadata,
-      });
-
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      setProgress(90);
-
       // Ensure required fields exist before setting result
       if (!data.request_id) {
         console.error('[Remaster] Response missing request_id:', data);
@@ -310,7 +289,14 @@ function App() {
       }
 
       setResult(data);
-      setProgress(100);
+      setVisualization(data.visualization ?? null);
+      if (mode === 'baseline' && !data.visualization) {
+        addLog(
+          data.visualization_error ?? 'Baseline response did not include remapped MIDI visualization.',
+          'error',
+          'visualize',
+        );
+      }
       if (Array.isArray(data.logs) && data.logs.length > 0) {
         const mapped = data.logs
           .filter(ev => ev && typeof ev.message === 'string')
@@ -331,10 +317,6 @@ function App() {
         addLog(`Audio warning: ${data.audio_error}`, 'warning', 'encode');
       }
     } catch (err) {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
       // Debug logging: log error details
       console.error('[Remaster] Request failed:', err);
       if (err instanceof Error) {
@@ -344,7 +326,6 @@ function App() {
       console.log('[Remaster] Error display:', display);
       setError(display);
       addLog(display.detail, 'error', undefined, display.debug);
-      setProgress(0);
     } finally {
       setLoading(false);
     }
@@ -356,26 +337,28 @@ function App() {
   }, []);
 
   return (
-    <div className="app">
+    <div className={`app app--${theme}`}>
       <header className="app-header">
         <div className="brand-stack">
-          <div className="brand-kicker">AUDIO WORKSTATION / 01</div>
-          <h1>MIDI REMASTER LAB</h1>
-          <p>Turn your MIDI into a playable console-era remix.</p>
+          <div className="brand-kicker">Audio workspace</div>
+          <h1>MIDI Remaster Lab</h1>
+          <p>Make your soundtrack playable again.</p>
         </div>
-        <div className="header-console">
-          <div className="header-wave" aria-hidden="true">
-            {[3, 5, 8, 12, 7, 10, 4, 8, 5, 3].map((height, index) => (
-              <span key={index} style={{ height: `${height * 3}px` }} />
-            ))}
+        <div className="header-actions">
+          <div className="header-console">
+            <span className={`status-dot ${mlAvailable ? 'status-dot--active' : ''}`} />
+            {mlAvailable ? 'Baseline + ML ready' : 'Baseline ready · ML unavailable'}
           </div>
-          <span>READY TO REMASTER</span>
+          <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+            {theme === 'dark' ? '☼ Light' : '☾ Dark'}
+          </button>
         </div>
       </header>
 
-      <main
-        className={`app-main ${mode === 'baseline' && advancedEnabled && analysis ? 'app-main--advanced-desktop' : ''}`}
-      >
+      <div className="app-content">
+        <main
+          className={`app-main ${mode === 'baseline' && advancedEnabled && analysis ? 'app-main--advanced-desktop' : ''}`}
+        >
         <nav
           className="app-main__mobile-tabs"
           aria-label="Sections"
@@ -405,12 +388,13 @@ function App() {
             Result
           </button>
         </nav>
-        <div
-          className={`app-main__panel-wrap ${activeMobileTab === 'upload' ? 'app-main__panel-wrap--visible' : ''}`}
-          data-panel="upload"
-        >
-          <UploadPanel
-            file={file}
+        <section className="app-main__top-grid">
+          <div
+            className={`app-main__panel-wrap app-main__upload ${activeMobileTab === 'upload' ? 'app-main__panel-wrap--visible' : ''}`}
+            data-panel="upload"
+          >
+              <UploadPanel
+                file={file}
             soundfont={soundfont}
             mode={mode}
             mlPromptMode={mlPromptMode}
@@ -419,7 +403,6 @@ function App() {
             advancedReady={Boolean(analysis)}
             description={description}
             loading={loading}
-            progress={progress}
             primaryActionLabel={
               mode === 'baseline' && advancedEnabled
                 ? analysis
@@ -429,6 +412,10 @@ function App() {
             }
             mlAvailableSoundfonts={mlAvailableSoundfonts}
             mlAvailable={mlAvailable}
+            mlUnavailableReason={mlUnavailableReason}
+            mlRecommendedAction={mlRecommendedAction}
+            torchError={torchError}
+            audiocraftError={audiocraftError}
             maxUploadBytes={maxUploadBytes}
             onFileChange={handleFileChange}
             onUpload={handleUpload}
@@ -444,6 +431,7 @@ function App() {
             onMlDurationChange={setMlDuration}
             onSoundfontChange={nextSoundfont => {
               setSoundfont(nextSoundfont);
+              setVisualization(null);
               setAnalysis(null);
               setChannelOverrides({});
             }}
@@ -455,41 +443,46 @@ function App() {
                 setChannelOverrides({});
               }
             }}
-          />
-          {mode === 'baseline' && advancedEnabled && (
-            <AdvancedBaselinePanel
-              analysis={analysis}
-              sourceStyle={sourceStyle}
-              onSourceStyleChange={value => {
-                setSourceStyle(value);
-                setAnalysis(null);
-                setChannelOverrides({});
-              }}
-              overrides={channelOverrides}
-              onOverrideChange={handleOverrideChange}
-              onResetChannel={handleResetChannel}
-              onResetAll={handleResetAllOverrides}
             />
+          </div>
+          <div
+            className={`app-main__panel-wrap app-main__logs ${activeMobileTab === 'logs' ? 'app-main__panel-wrap--visible' : ''}`}
+            data-panel="logs"
+          >
+            <LogsPanel logs={logs} />
+          </div>
+          <div
+            className={`app-main__panel-wrap app-main__result ${activeMobileTab === 'result' ? 'app-main__panel-wrap--visible' : ''}`}
+            data-panel="result"
+          >
+            <ResultPanel
+              error={error}
+              result={result}
+              loading={loading}
+              resolveUrl={resolveUrl}
+              onPlaybackTimeChange={setPlaybackTime}
+            />
+          </div>
+        </section>
+        <section className="app-main__visualizer-row remapped-visualizer-row">
+          {result?.visualization ? (
+            <SoundfontVisualizerPanel
+              visualization={result.visualization}
+              readOnly
+              playbackTime={playbackTime}
+            />
+          ) : result ? (
+            <p className="remapped-visualizer-placeholder">
+              {result.visualization_error ?? 'No remapped MIDI visualization was returned.'}
+            </p>
+          ) : (
+            <p className="remapped-visualizer-placeholder">
+              Remapped channel visualization will appear after remastering.
+            </p>
           )}
-        </div>
-        <div
-          className={`app-main__panel-wrap ${activeMobileTab === 'logs' ? 'app-main__panel-wrap--visible' : ''}`}
-          data-panel="logs"
-        >
-          <LogsPanel logs={logs} />
-        </div>
-        <div
-          className={`app-main__panel-wrap ${activeMobileTab === 'result' ? 'app-main__panel-wrap--visible' : ''}`}
-          data-panel="result"
-        >
-          <ResultPanel
-            error={error}
-            result={result}
-            loading={loading}
-            resolveUrl={resolveUrl}
-          />
-        </div>
-      </main>
+        </section>
+        </main>
+      </div>
 
       <footer className="app-footer">
         <p>

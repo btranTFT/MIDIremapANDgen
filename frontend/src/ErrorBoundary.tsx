@@ -51,19 +51,19 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="error-boundary" style={{
           padding: '2rem',
           margin: '2rem',
-          border: '2px solid #ff4444',
+          border: '2px solid var(--error)',
           borderRadius: '8px',
-          backgroundColor: '#1a1a2e',
-          color: '#fff',
+          backgroundColor: 'var(--card-bg)',
+          color: 'var(--text)',
         }}>
-          <h2 style={{ color: '#ff4444', marginTop: 0 }}>Something went wrong</h2>
+          <h2 style={{ color: 'var(--error)', marginTop: 0 }}>Something went wrong</h2>
           <p>The app encountered an error while rendering. This has been logged to the console.</p>
           {this.state.error && (
             <details style={{ marginTop: '1rem' }}>
               <summary style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>Error details</summary>
               <pre style={{
                 padding: '1rem',
-                backgroundColor: '#0a0a1a',
+                backgroundColor: 'var(--logs-bg)',
                 borderRadius: '4px',
                 overflow: 'auto',
                 fontSize: '0.875rem',
@@ -86,8 +86,8 @@ export class ErrorBoundary extends Component<Props, State> {
             style={{
               marginTop: '1rem',
               padding: '0.5rem 1rem',
-              backgroundColor: '#444',
-              color: '#fff',
+              backgroundColor: 'var(--button-secondary-bg)',
+              color: 'var(--button-secondary-text)',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',

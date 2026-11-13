@@ -11,7 +11,12 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Uploa
 
 from src.audio_renderer import get_tool_versions, render_midi_to_audio
 from src.log_events import log_event
-from src.ml_inference import check_ml_dependencies, get_checkpoint_path, get_inference_engine
+from src.ml_inference import (
+    check_ml_dependencies,
+    get_checkpoint_path,
+    get_inference_engine,
+    get_ml_diagnostics,
+)
 from src.schema import (
     error_body,
     is_allowed_content_type,
@@ -38,8 +43,8 @@ def _safe_midi_duration_seconds(midi_path: Path, fallback_seconds: float = 8.0) 
 
 def get_ml_availability() -> bool:
     """Return True when AudioCraft is installed; checkpoints are optional."""
-    deps = check_ml_dependencies()
-    return bool(deps.get("audiocraft"))
+    diagnostics = get_ml_diagnostics()
+    return bool(diagnostics["ml_available"])
 
 
 def get_ml_available_styles() -> list:
@@ -53,9 +58,9 @@ def get_ml_available_styles() -> list:
 @router.get("/ml/health")
 async def ml_health():
     """Check ML dependencies and optional style checkpoints."""
-    deps = check_ml_dependencies()
-    status = "ready" if deps["audiocraft"] else "unavailable"
-    return {"status": status, "details": deps}
+    diagnostics = get_ml_diagnostics()
+    status = "ready" if get_ml_availability() else "unavailable"
+    return {"status": status, "details": diagnostics}
 
 
 @router.get("/ml/available_soundfonts")
@@ -89,12 +94,14 @@ async def remaster_ml(
     
     # Validate ML dependencies for this specific soundfont
     deps = check_ml_dependencies(soundfont)
-    if not deps["audiocraft"]:
+    diagnostics = get_ml_diagnostics(soundfont)
+    if not diagnostics["ml_available"]:
         raise HTTPException(
             503,
             detail=error_body(
-                "ML dependencies not installed. Install audiocraft: pip install audiocraft torch torchaudio",
+                diagnostics["ml_reason"],
                 code="ML_UNAVAILABLE",
+                debug=diagnostics["recommended_action"],
             ),
         )
     prompt_mode = (prompt_mode or "text").strip().lower()
@@ -128,25 +135,24 @@ async def remaster_ml(
     input_path = workspace / input_basename
 
     try:
-        content = b""
         read_size = 0
         chunk_size = 1024 * 1024
         if file is not None:
-            while True:
-                chunk = await file.read(chunk_size)
-                if not chunk:
-                    break
-                read_size += len(chunk)
-                if read_size > MAX_UPLOAD_BYTES:
-                    raise HTTPException(
-                        413,
-                        detail=error_body(
-                            f"File exceeds maximum size ({MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
-                            code="PAYLOAD_TOO_LARGE",
-                        ),
-                    )
-                content += chunk
-            input_path.write_bytes(content)
+            with input_path.open("wb") as output_file:
+                while True:
+                    chunk = await file.read(chunk_size)
+                    if not chunk:
+                        break
+                    read_size += len(chunk)
+                    if read_size > MAX_UPLOAD_BYTES:
+                        raise HTTPException(
+                            413,
+                            detail=error_body(
+                                f"File exceeds maximum size ({MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
+                                code="PAYLOAD_TOO_LARGE",
+                            ),
+                        )
+                    output_file.write(chunk)
         processing_logs = [
             log_event(
                 "info",
@@ -155,7 +161,7 @@ async def remaster_ml(
             )
         ]
         descriptions = [description.strip()]
-        inference = get_inference_engine(soundfont)
+        inference = get_inference_engine(soundfont, conditioning_type=prompt_mode)
 
         stem = Path(input_basename).stem
         safe_stem = "".join(c if c.isalnum() or c in "-_" else "_" for c in stem).strip("_")[:200] or "song"
@@ -167,7 +173,15 @@ async def remaster_ml(
             soundfont_path = get_soundfont_path(soundfont)
             if not soundfont_path.exists():
                 raise HTTPException(503, detail=error_body(f"Soundfont not found: {soundfont_path.name}", code="SOUNDFONT_NOT_FOUND"))
-            prompt_wav_path = await asyncio.to_thread(render_midi_to_audio, input_path, soundfont_path, "wav")
+            prompt_wav_path = await asyncio.to_thread(
+                render_midi_to_audio,
+                input_path,
+                soundfont_path,
+                "wav",
+                False,
+                0.35,
+                False,
+            )
             processing_logs.append(log_event("info", "render", "MIDI rendered as audio prompt"))
 
         try:
@@ -192,7 +206,7 @@ async def remaster_ml(
         # Step 3: Convert to MP3
         from src.audio_renderer import convert_to_mp3
         output_mp3_path = generated_path.with_suffix(".mp3")
-        convert_to_mp3(generated_path, output_mp3_path)
+        await asyncio.to_thread(convert_to_mp3, generated_path, output_mp3_path)
         processing_logs.append(log_event("info", "encode", "Converted to MP3"))
 
         # Cleanup: schedule workspace deletion
@@ -213,6 +227,8 @@ async def remaster_ml(
             "tool_versions": tool_versions,
             "checkpoint": checkpoint_path.name if checkpoint_path else None,
             "fallback_to_base": checkpoint_path is None,
+            "model_name": inference.model_name,
+            "checkpoint_loaded": inference.checkpoint_loaded,
         }
         metadata_path = workspace / "metadata.json"
         metadata_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
@@ -224,6 +240,7 @@ async def remaster_ml(
             "description": descriptions[0],
             "prompt_mode": prompt_mode,
             "duration_seconds": duration,
+            "visualization": None,
             "method": "musicgen_ml",
             "logs": processing_logs,
             "metadata_url": f"/download/metadata/{workspace.name}",

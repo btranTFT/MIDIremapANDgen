@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import shutil
 import uuid
@@ -21,7 +22,12 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from src.audio_renderer import check_dependencies, get_tool_versions, render_midi_to_audio
 from src.instrument_mapper import get_channel_classifications, remap_midi
-from src.midi_edits import apply_channel_overrides, build_editor_analysis, parse_channel_overrides
+from src.midi_edits import (
+    apply_channel_overrides,
+    build_editor_analysis,
+    build_visualization_payload,
+    parse_channel_overrides,
+)
 from src.schema import (
     error_body,
     is_allowed_content_type,
@@ -33,6 +39,8 @@ from src.schema import (
 )
 from src.log_events import log_event
 from src.soundfonts import VALID_IDS, get_soundfont_path, list_soundfonts as list_soundfonts_options
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def _lifespan(app):
@@ -62,13 +70,31 @@ app.add_exception_handler(HTTPException, _http_exception_handler)
 _ml_available_fn = lambda: False
 _ml_available_styles_fn = lambda: []
 try:
-    from src.api_ml import router as ml_router, get_ml_availability, get_ml_available_styles
+    from src.api_ml import (
+        router as ml_router,
+        get_ml_availability,
+        get_ml_available_styles,
+        get_ml_diagnostics,
+    )
     app.include_router(ml_router, prefix="/api", tags=["ML Generation"])
     _ml_available_fn = get_ml_availability
     _ml_available_styles_fn = get_ml_available_styles
+    _ml_diagnostics_fn = get_ml_diagnostics
     print("[API] ML router mounted at /api/remaster_ml")
 except ImportError as e:
     print(f"[API] ML router not available: {e}")
+    _ml_diagnostics_fn = lambda: {
+        "torch_available": False,
+        "torch_error": None,
+        "audiocraft_available": False,
+        "audiocraft_error": None,
+        "checkpoint_available": False,
+        "checkpoint_path": None,
+        "ml_available": False,
+        "ml_reason": "ML router unavailable. Install backend/requirements-ml.txt and AudioCraft.",
+        "recommended_action": "Install the ML dependencies and AudioCraft, then restart the backend.",
+        "reason": "ML router unavailable. Install backend/requirements-ml.txt and AudioCraft.",
+    }
 
 # Capabilities: single source for frontend (health); must match schema.MAX_UPLOAD_BYTES
 DEFAULT_MAX_UPLOAD_BYTES = MAX_UPLOAD_BYTES
@@ -161,24 +187,23 @@ def _normalize_source_style(value: str | None) -> str | None:
 async def _parse_uploaded_midi(file: UploadFile, workspace: Path) -> tuple[str, Path, mido.MidiFile]:
     input_basename = safe_midi_input_basename(file.filename or "input.mid")
     input_path = workspace / input_basename
-    content = b""
     read_size = 0
     chunk_size = 1024 * 1024
-    while True:
-        chunk = await file.read(chunk_size)
-        if not chunk:
-            break
-        read_size += len(chunk)
-        if read_size > MAX_UPLOAD_BYTES:
-            raise HTTPException(
-                413,
-                detail=error_body(
-                    f"File exceeds maximum size ({DEFAULT_MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
-                    code="PAYLOAD_TOO_LARGE",
-                ),
-            )
-        content += chunk
-    input_path.write_bytes(content)
+    with input_path.open("wb") as output_file:
+        while True:
+            chunk = await file.read(chunk_size)
+            if not chunk:
+                break
+            read_size += len(chunk)
+            if read_size > MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    413,
+                    detail=error_body(
+                        f"File exceeds maximum size ({DEFAULT_MAX_UPLOAD_BYTES // (1024*1024)} MiB).",
+                        code="PAYLOAD_TOO_LARGE",
+                    ),
+                )
+            output_file.write(chunk)
     try:
         midi = await asyncio.wait_for(
             asyncio.to_thread(mido.MidiFile, input_path),
@@ -289,6 +314,10 @@ async def analyze_remaster(
             "source_style": source_style,
             "input_filename": input_basename,
             "channels": analysis["channels"],
+            "notes": analysis["notes"],
+            "duration_seconds": midi.length,
+            "ticks_per_beat": midi.ticks_per_beat,
+            "tempo": analysis["tempo"],
             "available_programs": analysis["available_programs"],
             "preserve_compatible_programs": analysis["preserve_compatible_programs"],
             "logs": processing_logs,
@@ -386,6 +415,20 @@ async def remaster(
         output_midi.save(str(output_path))
         processing_logs.append(log_event("info", "render", "MIDI remapped to soundfont"))
 
+        output_note_count = sum(
+            1
+            for track in output_midi.tracks
+            for msg in track
+            if getattr(msg, "type", None) == "note_on"
+            and getattr(msg, "velocity", 0) > 0
+        )
+        print(f"[Visualization] remapped MIDI path: {output_path}")
+        print(f"[Visualization] remapped MIDI exists: {output_path.exists()}")
+        print(f"[Visualization] remapped note count: {output_note_count}")
+        logger.info("[Visualization] source MIDI: remapped output")
+        logger.info("[Visualization] output path: %s", output_path)
+        logger.info("[Visualization] file exists: %s", output_path.exists())
+
         soundfont_path = get_soundfont_path(soundfont)
         audio_url = None
         audio_error = None
@@ -414,6 +457,34 @@ async def remaster(
             audio_error = f"Soundfont not found: {soundfont_path.name}"
             processing_logs.append(log_event("warn", "encode", audio_error))
 
+        visualization = None
+        visualization_error = None
+        try:
+            if not output_path.exists():
+                raise FileNotFoundError(f"Remapped MIDI was not saved: {output_path}")
+            visualization = build_visualization_payload(
+                output_midi,
+                soundfont_id=soundfont,
+                source="remapped",
+            )
+            logger.info(
+                "[Visualization] note count: %d",
+                len(visualization["notes"]),
+            )
+            logger.info(
+                "[Visualization] channel count: %d",
+                len(visualization["channels"]),
+            )
+        except Exception as exc:
+            visualization_error = (
+                f"Could not build remapped MIDI visualization from {output_path}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            logger.exception("[Visualization] generation failed")
+            processing_logs.append(
+                log_event("warn", "visualize", "Visualization generation failed", debug=str(exc))
+            )
+
         _schedule_cleanup(workspace)
 
         tool_versions = get_tool_versions()
@@ -438,6 +509,8 @@ async def remaster(
             "audio_url": audio_url,
             "audio_error": audio_error,
             "soundfont": soundfont,
+            "visualization": visualization,
+            "visualization_error": visualization_error,
             "classifications": {
                 str(ch): {"program": prog, "name": name}
                 for ch, (prog, name) in classifications.items()
@@ -461,6 +534,75 @@ async def remaster(
                 debug=str(e),
             ),
         )
+
+
+@app.get("/api/remaster/{request_id}/visualization")
+async def remaster_visualization(request_id: str):
+    """Return visualization data extracted from a saved remapped MIDI."""
+    workspace = _get_workspace(request_id)
+    candidates = sorted(
+        path for path in workspace.glob("*remap*.mid*")
+        if path.is_file()
+    )
+    if not candidates:
+        raise HTTPException(
+            404,
+            detail=error_body(
+                "Remapped MIDI file not found in workspace.",
+                code="REMAPPED_MIDI_NOT_FOUND",
+            ),
+        )
+    remapped_path = candidates[0]
+    metadata = _get_workspace_metadata(workspace)
+    soundfont = _normalize_soundfont_id(metadata.get("style"))
+    try:
+        remapped_midi = mido.MidiFile(str(remapped_path))
+    except Exception as exc:
+        raise HTTPException(
+            422,
+            detail=error_body(
+                f"Could not load remapped MIDI: {type(exc).__name__}: {exc}",
+                code="REMAPPED_MIDI_INVALID",
+            ),
+        )
+    note_count = sum(
+        1
+        for track in remapped_midi.tracks
+        for msg in track
+        if getattr(msg, "type", None) == "note_on"
+        and getattr(msg, "velocity", 0) > 0
+    )
+    if note_count == 0:
+        raise HTTPException(
+            422,
+            detail=error_body(
+                "Remapped MIDI contains zero note events.",
+                code="REMAPPED_MIDI_EMPTY",
+            ),
+        )
+    try:
+        visualization = build_visualization_payload(
+            remapped_midi,
+            soundfont_id=soundfont,
+            source="remapped",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            422,
+            detail=error_body(
+                f"Could not extract remapped MIDI visualization: {type(exc).__name__}: {exc}",
+                code="VISUALIZATION_EXTRACTION_FAILED",
+            ),
+        )
+    if not visualization["notes"]:
+        raise HTTPException(
+            422,
+            detail=error_body(
+                "Remapped MIDI note extraction returned zero notes.",
+                code="VISUALIZATION_EMPTY",
+            ),
+        )
+    return visualization
 
 
 def _download_path(request_id: str, filename: str) -> Path:
@@ -498,6 +640,12 @@ async def download_midi(request_id: str, filename: str):
     return FileResponse(path, media_type="audio/midi", filename=filename)
 
 
+@app.head("/download/midi/{request_id}/{filename}")
+async def head_download_midi(request_id: str, filename: str):
+    path = _download_path(request_id, filename)
+    return FileResponse(path, media_type="audio/midi", filename=filename)
+
+
 @app.get("/download/metadata/{request_id}")
 async def download_metadata(request_id: str):
     path = _download_path(request_id, "metadata.json")
@@ -517,12 +665,13 @@ async def health():
     ml_available = _ml_available_fn()
     available_styles = sorted(VALID_IDS)
     ml_available_styles = _ml_available_styles_fn()
+    ml_diagnostics = _ml_diagnostics_fn()
     return {
         "status": "ok",
         "dependencies": deps,
         "ml_available": ml_available,
         "available_styles": available_styles,
         "ml_available_styles": ml_available_styles,
+        **ml_diagnostics,
         "max_upload_bytes": DEFAULT_MAX_UPLOAD_BYTES,
     }
-

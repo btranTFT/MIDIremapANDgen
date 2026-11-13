@@ -6,7 +6,8 @@ Transform MIDI files into console-style audio using soundfont synthesis (Baselin
 
 ## Prerequisites
 
-Install these on your machine before running the app:
+Install these on your machine before running the app. Baseline operation does
+not require PyTorch or torchaudio.
 
 | Requirement | Purpose |
 |-------------|---------|
@@ -105,7 +106,8 @@ MIDIremapANDgen/
 │   │   ├── test_ml_checkpoint.py  # Checkpoint loading tests
 │   │   └── conftest.py      # Shared fixtures (minimal MIDI)
 │   ├── data/soundfonts/     # .sf2 files (snes, gba, nds, ps2, wii)
-│   └── requirements.txt    # Python deps for API + optional ML
+│   ├── requirements.txt    # Core Python deps for the baseline API
+│   └── requirements-ml.txt # Optional Torch/torchaudio ML dependencies
 ├── frontend/                # React + Vite UI
 │   ├── src/
 │   │   ├── App.tsx          # Upload, mode toggle, soundfont pills, results
@@ -194,7 +196,14 @@ The evaluation runner computes PICS, Pearson melody similarity, and onset F-meas
 To use the **ML** mode in the app:
 
 1. **Python 3.11** is recommended (AudioCraft compatibility).
-2. Install backend deps including ML (see `backend/requirements.txt` comments or use a separate venv with `torch`, `torchaudio`, `audiocraft`).
+2. Install the optional ML dependencies:
+   ```bash
+   cd backend
+   pip install -r requirements-ml.txt
+   pip install git+https://github.com/facebookresearch/audiocraft.git
+   ```
+   AudioCraft remains a separate source installation because it is not a core
+   backend dependency.
 3. Run the backend with that Python:  
    `py -3.11 -m uvicorn src.api:app --host 0.0.0.0 --port 8001`
 4. Fine-tuned checkpoints such as `best_model_snes.pt` may be placed in `MLtraining/` as described in [MLtraining/README.md](MLtraining/README.md). They are optional; the base model supports text generation without a checkpoint.
@@ -247,7 +256,9 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 # ML Configuration (optional, only needed for ML mode)
 # MUSICGEN_CHECKPOINT_PATH=path/to/checkpoint/{soundfont}.pt
-# MUSICGEN_MODEL_NAME=facebook/musicgen-melody
+# MUSICGEN_MODEL_NAME=                 # legacy override for either prompt type
+# MUSICGEN_TEXT_MODEL_NAME=facebook/musicgen-small
+# MUSICGEN_MELODY_MODEL_NAME=facebook/musicgen-melody
 # MUSICGEN_DURATION=15.0
 # MUSICGEN_DEVICE=cuda
 # MUSICGEN_TOP_K=250
@@ -288,7 +299,7 @@ Environment variables:
 
 - **`BUILD_MODE`**: Set to `"commercial"` to disable GPL soundfonts
 
-- **ML config** (optional): `MUSICGEN_CHECKPOINT_PATH`, `MUSICGEN_MODEL_NAME`, `MUSICGEN_DURATION`, `MUSICGEN_DEVICE`, `MUSICGEN_TOP_K`, `MUSICGEN_TOP_P`, `MUSICGEN_TEMPERATURE`
+- **ML config** (optional): `MUSICGEN_CHECKPOINT_PATH`, legacy `MUSICGEN_MODEL_NAME`, `MUSICGEN_TEXT_MODEL_NAME`, `MUSICGEN_MELODY_MODEL_NAME`, `MUSICGEN_DURATION`, `MUSICGEN_DEVICE`, `MUSICGEN_TOP_K`, `MUSICGEN_TOP_P`, `MUSICGEN_TEMPERATURE`. Text prompts use the smaller text model by default; audio-conditioned prompts use the melody model. `MUSICGEN_MODEL_NAME` overrides both when set.
 
 **Example `backend/.env`:**
 ```bash
@@ -298,6 +309,9 @@ CORS_ORIGINS=https://your-app.example.com
 # Optional ML config
 MUSICGEN_DEVICE=cuda
 MUSICGEN_DURATION=15.0
+# Optional model selection:
+# MUSICGEN_TEXT_MODEL_NAME=facebook/musicgen-small
+# MUSICGEN_MELODY_MODEL_NAME=facebook/musicgen-melody
 ```
 
 ### Frontend
@@ -319,6 +333,41 @@ VITE_API_BASE=https://api.your-app.example.com
 ```
 
 **Note**: Vite requires the `VITE_` prefix for env vars exposed to client code.
+
+### Browser MIDI support
+
+The MIDI keyboard panel uses the Web MIDI API when the browser supports it.
+The browser must have permission to access MIDI devices, and browser MIDI
+requires HTTPS when the app is not running on `localhost`. The current panel
+provides browser audio preview and MIDI input detection; it does not yet
+provide exact SoundFont playback or MIDI recording. Those are future
+improvements tracked in [docs/improvement-roadmap.md](docs/improvement-roadmap.md).
+
+### Installing dependencies
+
+For the baseline app, install the core backend and frontend dependencies:
+
+```bash
+cd backend
+python -m venv venv
+# Activate the venv, then:
+pip install -r requirements.txt
+cd ../frontend
+npm install
+```
+
+For optional ML support, install the ML requirements and AudioCraft source
+package after the baseline requirements:
+
+```bash
+cd backend
+pip install -r requirements-ml.txt
+pip install git+https://github.com/facebookresearch/audiocraft.git
+```
+
+The startup scripts perform the baseline installation by default. To request
+ML installation, use `INSTALL_ML=1 bash scripts/start.sh` on macOS/Linux or
+`.\scripts\start.ps1 -InstallML` on Windows.
 
 ---
 

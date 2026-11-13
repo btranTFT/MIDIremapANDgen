@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { head } from './api';
+import type { VisualizationPayload } from './SoundfontVisualizerPanel';
 
 export interface ProvenanceMetadata {
   input_filename?: string;
@@ -14,6 +15,8 @@ export interface ProvenanceMetadata {
   tool_versions?: Record<string, string>;
   checkpoint?: string | null;
   fallback_to_base?: boolean;
+  model_name?: string;
+  checkpoint_loaded?: boolean;
 }
 
 export interface RemasterResult {
@@ -30,6 +33,8 @@ export interface RemasterResult {
   duration_seconds?: 15 | 30;
   metadata_url?: string;
   metadata?: ProvenanceMetadata;
+  visualization?: VisualizationPayload | null;
+  visualization_error?: string | null;
   classifications?: {
     [channel: string]: {
       program: number;
@@ -43,6 +48,7 @@ export interface ResultPanelProps {
   result: RemasterResult | null;
   loading?: boolean;
   resolveUrl: (url?: string | null) => string | undefined;
+  onPlaybackTimeChange?: (seconds: number) => void;
 }
 
 const ClassificationsList = React.memo<{
@@ -76,6 +82,7 @@ export function ResultPanel({
   result,
   loading = false,
   resolveUrl,
+  onPlaybackTimeChange,
 }: ResultPanelProps) {
   const [audioSourceIndex, setAudioSourceIndex] = useState<0 | 1>(0);
   const [audioUnavailable, setAudioUnavailable] = useState(false);
@@ -210,6 +217,8 @@ export function ResultPanel({
                     controls
                     src={resolvedAudio}
                     onError={handleAudioError}
+                    onTimeUpdate={event => onPlaybackTimeChange?.(event.currentTarget.currentTime)}
+                    onEnded={() => onPlaybackTimeChange?.(0)}
                   >
                     Your browser does not support the audio element.
                   </audio>
@@ -344,6 +353,18 @@ export function ResultPanel({
                         <>
                           <dt>Checkpoint</dt>
                           <dd>{result.metadata.checkpoint}</dd>
+                        </>
+                      )}
+                      {result.metadata.model_name != null && (
+                        <>
+                          <dt>Model</dt>
+                          <dd>{result.metadata.model_name}</dd>
+                        </>
+                      )}
+                      {result.metadata.checkpoint_loaded != null && (
+                        <>
+                          <dt>Checkpoint loaded</dt>
+                          <dd>{result.metadata.checkpoint_loaded ? 'Yes' : 'No'}</dd>
                         </>
                       )}
                       {result.metadata.fallback_to_base != null && (

@@ -17,19 +17,23 @@
 .PARAMETER BackendPort
     Port for the FastAPI backend (default: 8001, matches vite.config.ts proxy).
 
+.PARAMETER InstallML
+    Install optional Torch, torchaudio, and AudioCraft dependencies.
+
 .EXAMPLE
     # From repo root:
     .\scripts\start.ps1
 
 .EXAMPLE
-    # With ML venv:
-    .\scripts\start.ps1  # then activate venv_ml in the backend window manually
+    # With optional ML dependencies:
+    .\scripts\start.ps1 -InstallML
 #>
 
 param(
     [string]$Backend  = (Join-Path (Join-Path $PSScriptRoot "..") "backend"),
     [string]$Frontend = (Join-Path (Join-Path $PSScriptRoot "..") "frontend"),
-    [int]   $BackendPort = 8001
+    [int]   $BackendPort = 8001,
+    [switch]$InstallML
 )
 
 $Backend  = Resolve-Path $Backend
@@ -47,11 +51,13 @@ if (-not (Test-Command "node")) {
     exit 1
 }
 if (-not (Test-Path (Join-Path $Backend "venv\Scripts\activate.ps1"))) {
-    Write-Warning "Backend venv not found at $Backend\venv. Run:"
-    Write-Warning "  cd $Backend && python -m venv venv && venv\Scripts\activate && pip install -r requirements.txt"
+    Write-Host "[start.ps1] Creating backend virtual environment..." -ForegroundColor Cyan
+    & python -m venv (Join-Path $Backend "venv")
 }
 if (-not (Test-Path (Join-Path $Frontend "node_modules"))) {
-    Write-Warning "node_modules not found. Run: cd $Frontend && npm install"
+    Write-Host "[start.ps1] Installing frontend dependencies..." -ForegroundColor Cyan
+    Push-Location $Frontend
+    try { & npm install } finally { Pop-Location }
 }
 if (-not (Test-Command "fluidsynth")) {
     Write-Warning "fluidsynth not on PATH - audio rendering will be unavailable."
@@ -60,36 +66,28 @@ if (-not (Test-Command "lame")) {
     Write-Warning "lame not on PATH - MP3 conversion will be unavailable."
 }
 
-# ── Auto-install ML dependencies if missing ───────────────────────────────
+# ── Install baseline dependencies by default ──────────────────────────────
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $mlTrainingDir = Join-Path $RepoRoot "MLtraining"
 if (-not (Test-Path $mlTrainingDir)) { New-Item -ItemType Directory -Path $mlTrainingDir -Force | Out-Null }
 
 $venvPip = Join-Path $Backend "venv\Scripts\pip.exe"
-$venvPython = Join-Path $Backend "venv\Scripts\python.exe"
 if (Test-Path $venvPip) {
-    Write-Host "[start.ps1] Checking ML dependencies..." -ForegroundColor Cyan
+    Write-Host "[start.ps1] Installing baseline dependencies..." -ForegroundColor Cyan
+    & $venvPip install -r (Join-Path $Backend "requirements.txt") --quiet
 
-    & $venvPython -c "import torch" 2>&1 | Out-Null
-    $torchOk = ($LASTEXITCODE -eq 0)
-
-    & $venvPython -c "from audiocraft.models import MusicGen" 2>&1 | Out-Null
-    $acOk = ($LASTEXITCODE -eq 0)
-
-    if (-not $torchOk) {
-        Write-Host "[start.ps1] Installing torch + torchaudio..." -ForegroundColor Yellow
-        & $venvPip install torch torchaudio --quiet
-    }
-    if (-not $acOk) {
+    if ($InstallML) {
+        Write-Host "[start.ps1] Installing optional ML dependencies..." -ForegroundColor Yellow
+        & $venvPip install -r (Join-Path $Backend "requirements-ml.txt") --quiet
         Write-Host "[start.ps1] Installing audiocraft from source..." -ForegroundColor Yellow
         & $venvPip install "git+https://github.com/facebookresearch/audiocraft.git" --quiet
-    }
-    if ($torchOk -and $acOk) {
-        Write-Host "[start.ps1] ML dependencies already installed." -ForegroundColor Green
+    } else {
+        Write-Host "[start.ps1] ML dependencies skipped (use -InstallML to install)." -ForegroundColor DarkYellow
     }
 }
 else {
-    Write-Warning "Backend venv pip not found -- skipping ML auto-install."
+    Write-Error "Backend venv pip not found at $venvPip."
+    exit 1
 }
 
 # ── Launch backend ─────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import mido
 
@@ -13,6 +14,169 @@ from src.feature_extractor import (
     get_channel_programs,
 )
 from src.instrument_mapper import get_channel_classifications
+
+logger = logging.getLogger(__name__)
+
+
+def _tempo_map(midi: mido.MidiFile) -> list[tuple[int, int]]:
+    """Return absolute-tick tempo changes, including the MIDI default tempo."""
+    changes = {0: 500000}
+    merged_tick = 0
+    for message in mido.merge_tracks(midi.tracks):
+        merged_tick += message.time
+        if message.type == "set_tempo":
+            changes[merged_tick] = message.tempo
+    return sorted(changes.items())
+
+
+def _ticks_to_seconds(ticks: int, ticks_per_beat: int, tempo_changes: list[tuple[int, int]]) -> float:
+    seconds = 0.0
+    previous_tick = 0
+    tempo = tempo_changes[0][1]
+    for change_tick, change_tempo in tempo_changes[1:]:
+        if change_tick >= ticks:
+            break
+        seconds += mido.tick2second(change_tick - previous_tick, ticks_per_beat, tempo)
+        previous_tick = change_tick
+        tempo = change_tempo
+    seconds += mido.tick2second(max(0, ticks - previous_tick), ticks_per_beat, tempo)
+    return seconds
+
+
+def _extract_note_events(midi: mido.MidiFile) -> tuple[list[dict], float, int, int]:
+    """Extract note rectangles from the source MIDI without inventing timing."""
+    tempo_changes = _tempo_map(midi)
+    notes: list[dict] = []
+    note_on_count = 0
+    note_off_count = 0
+    velocity_zero_note_on_count = 0
+    for track_index, track in enumerate(midi.tracks):
+        absolute_tick = 0
+        track_name = next(
+            (message.name for message in track if message.type == "track_name"),
+            f"Track {track_index + 1}",
+        )
+        programs: dict[int, int | None] = {}
+        active: dict[tuple[int, int], list[tuple[int, int, int | None]]] = {}
+        for message in track:
+            absolute_tick += message.time
+            if message.type == "program_change":
+                programs[message.channel] = message.program
+                continue
+            if message.type == "note_on":
+                if message.velocity > 0:
+                    note_on_count += 1
+                else:
+                    velocity_zero_note_on_count += 1
+            elif message.type == "note_off":
+                note_off_count += 1
+            else:
+                continue
+            key = (message.channel, message.note)
+            if message.type == "note_on" and message.velocity > 0:
+                active.setdefault(key, []).append(
+                    (absolute_tick, message.velocity, programs.get(message.channel))
+                )
+            elif message.type == "note_off" or (
+                message.type == "note_on" and message.velocity == 0
+            ):
+                starts = active.get(key)
+                if not starts:
+                    continue
+                start_tick, velocity, program = starts.pop()
+                start_seconds = _ticks_to_seconds(start_tick, midi.ticks_per_beat, tempo_changes)
+                end_seconds = _ticks_to_seconds(absolute_tick, midi.ticks_per_beat, tempo_changes)
+                notes.append(
+                    {
+                        "id": f"{track_index}-{message.channel}-{message.note}-{start_tick}",
+                        "track": track_index,
+                        "track_name": track_name,
+                        "channel": message.channel,
+                        "pitch": message.note,
+                        "start_tick": start_tick,
+                        "duration_ticks": max(1, absolute_tick - start_tick),
+                        "start_seconds": round(start_seconds, 6),
+                        "duration_seconds": round(max(0.001, end_seconds - start_seconds), 6),
+                        "velocity": velocity,
+                        "program": program,
+                        "instrument_name": get_program_name(program),
+                    }
+                )
+        track_end = _ticks_to_seconds(absolute_tick, midi.ticks_per_beat, tempo_changes)
+        for (channel, pitch), starts in active.items():
+            for start_tick, velocity, program in starts:
+                start_seconds = _ticks_to_seconds(start_tick, midi.ticks_per_beat, tempo_changes)
+                notes.append(
+                    {
+                        "id": f"{track_index}-{channel}-{pitch}-{start_tick}",
+                        "track": track_index,
+                        "track_name": track_name,
+                        "channel": channel,
+                        "pitch": pitch,
+                        "start_tick": start_tick,
+                        "duration_ticks": max(1, absolute_tick - start_tick),
+                        "start_seconds": round(start_seconds, 6),
+                        "duration_seconds": round(max(0.001, track_end - start_seconds), 6),
+                        "velocity": velocity,
+                        "program": program,
+                        "instrument_name": get_program_name(program),
+                    }
+                )
+    notes_per_channel: dict[int, int] = {}
+    for note in notes:
+        notes_per_channel[note["channel"]] = notes_per_channel.get(note["channel"], 0) + 1
+    logger.info(
+        "MIDI note extraction: tracks=%d note_on=%d note_off=%d "
+        "velocity_zero_note_on=%d extracted=%d notes_per_channel=%s",
+        len(midi.tracks),
+        note_on_count,
+        note_off_count,
+        velocity_zero_note_on_count,
+        len(notes),
+        notes_per_channel,
+    )
+    duration_seconds = float(midi.length)
+    tempo = tempo_changes[0][1]
+    for message in mido.merge_tracks(midi.tracks):
+        if message.type == "set_tempo":
+            tempo = message.tempo
+            break
+    return notes, round(duration_seconds, 6), midi.ticks_per_beat, tempo
+
+
+def extract_midi_notes(midi: mido.MidiFile) -> list[dict]:
+    """Extract matched MIDI note events for visual inspection."""
+    notes, _duration_seconds, _ticks_per_beat, _tempo = _extract_note_events(midi)
+    return notes
+
+
+def build_visualization_payload(
+    midi: mido.MidiFile,
+    soundfont_id: str,
+    source: str = "remapped",
+) -> dict:
+    """Build read-only visualizer data from the exact MIDI being rendered."""
+    notes = extract_midi_notes(midi)
+    programs = get_channel_programs(midi)
+    channels_by_id: dict[int, dict] = {}
+    for channel in get_active_channels(midi):
+        program = programs.get(channel)
+        channel_notes = [note for note in notes if note["channel"] == channel]
+        channels_by_id[channel] = {
+            "channel": channel,
+            "instrument_name": get_program_name(program) if program is not None else "Unassigned",
+            "program": program,
+            "note_count": len(channel_notes),
+            "is_drum": channel == 9,
+        }
+    return {
+        "source": source,
+        "soundfont": soundfont_id,
+        "ticks_per_beat": midi.ticks_per_beat,
+        "duration_seconds": float(midi.length),
+        "channels": list(channels_by_id.values()),
+        "notes": notes,
+    }
 
 
 def build_editor_analysis(
@@ -29,6 +193,10 @@ def build_editor_analysis(
     )
     original_programs = get_channel_programs(midi)
     channels: list[dict] = []
+    notes = extract_midi_notes(midi)
+    duration_seconds = float(midi.length)
+    ticks_per_beat = midi.ticks_per_beat
+    tempo = _tempo_map(midi)[0][1]
     for channel_num in get_active_channels(midi):
         detected_program, detected_name = classifications.get(
             channel_num,
@@ -54,6 +222,18 @@ def build_editor_analysis(
                 "avg_velocity": round(getattr(features, "avg_velocity", 0.0), 2)
                 if features is not None
                 else None,
+                "track_name": next(
+                    (
+                        note["track_name"]
+                        for note in notes
+                        if note["channel"] == channel_num
+                    ),
+                    f"Channel {channel_num + 1}",
+                ),
+                "density": round(
+                    getattr(features, "note_density", 0.0) or 0.0,
+                    2,
+                ),
                 "defaults": {
                     "program": None,
                     "transpose": 0,
@@ -74,6 +254,10 @@ def build_editor_analysis(
     ]
     return {
         "channels": channels,
+        "notes": notes,
+        "duration_seconds": duration_seconds,
+        "ticks_per_beat": ticks_per_beat,
+        "tempo": tempo,
         "available_programs": available_programs,
         "preserve_compatible_programs": preserve_compatible_programs,
     }

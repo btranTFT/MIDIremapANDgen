@@ -4,24 +4,63 @@ import os
 from pathlib import Path
 from typing import Optional
 
-import torch
 import numpy as np
 import soundfile as sf
+
+try:
+    import torch
+except (ImportError, OSError) as exc:
+    torch = None
+    _TORCH_IMPORT_EXCEPTION = exc
+    _TORCH_IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
+else:
+    _TORCH_IMPORT_EXCEPTION = None
+    _TORCH_IMPORT_ERROR = None
 
 # Defer imports to allow startup without ML dependencies
 _AUDIOCRAFT_AVAILABLE = False
 try:
     from audiocraft.models import MusicGen
     _AUDIOCRAFT_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError) as exc:
     MusicGen = None
+    _AUDIOCRAFT_IMPORT_EXCEPTION = exc
+    _AUDIOCRAFT_IMPORT_ERROR = f"{type(exc).__name__}: {exc}"
+else:
+    _AUDIOCRAFT_IMPORT_EXCEPTION = None
+    _AUDIOCRAFT_IMPORT_ERROR = None
+
+
+def _is_windows_policy_block(error: str | None) -> bool:
+    return bool(error and "winerror 4551" in error.lower())
+
+
+def _dependency_diagnostic(name: str, error: str | None) -> tuple[str, str]:
+    """Return a precise user-facing explanation and next action for an import error."""
+    if _is_windows_policy_block(error):
+        return (
+            f"{name} could not be loaded because a Windows Application Control policy "
+            f"blocked one of its DLLs ({error}). This is not a missing dependency and "
+            "reinstalling the package will not bypass the policy.",
+            "Ask your administrator to review the Windows Application Control policy "
+            f"for {name}. Do not disable or weaken Windows security controls. "
+            "As an optional workaround, a CPU-only PyTorch environment may avoid "
+            "the blocked CUDA DLL, but MusicGen will be substantially slower.",
+        )
+    return (
+        f"{name} is unavailable ({error or 'unknown import error'}).",
+        f"Install the ML dependencies with `python -m pip install -r "
+        "backend/requirements-ml.txt` and install AudioCraft from its documented source.",
+    )
 
 
 def check_ml_dependencies(soundfont_id: Optional[str] = None) -> dict:
     """Check if ML dependencies are installed and model checkpoint exists."""
     result = {
-        "torch": torch.__version__ if hasattr(torch, "__version__") else "unknown",
+        "torch": torch.__version__ if torch is not None else "unavailable",
         "audiocraft": _AUDIOCRAFT_AVAILABLE,
+        "torch_error": _TORCH_IMPORT_ERROR,
+        "audiocraft_error": _AUDIOCRAFT_IMPORT_ERROR,
     }
     
     if soundfont_id:
@@ -40,6 +79,46 @@ def check_ml_dependencies(soundfont_id: Optional[str] = None) -> dict:
         result["checkpoint_exists"] = len(available_soundfonts) > 0
     
     return result
+
+
+def get_ml_diagnostics(soundfont_id: str = "snes") -> dict:
+    """Return user-facing ML capability diagnostics without loading a model."""
+    checkpoint_path = get_checkpoint_path(soundfont_id)
+    checkpoint_available = bool(checkpoint_path and checkpoint_path.exists())
+    reasons: list[str] = []
+    recommended_actions: list[str] = []
+    if torch is None:
+        torch_reason, torch_action = _dependency_diagnostic("Torch", _TORCH_IMPORT_ERROR)
+        reasons.append(torch_reason)
+        recommended_actions.append(torch_action)
+    if not _AUDIOCRAFT_AVAILABLE:
+        audiocraft_reason, audiocraft_action = _dependency_diagnostic(
+            "AudioCraft", _AUDIOCRAFT_IMPORT_ERROR
+        )
+        reasons.append(audiocraft_reason)
+        recommended_actions.append(audiocraft_action)
+    if torch is not None and _AUDIOCRAFT_AVAILABLE:
+        reason = "ML dependencies are available; checkpoints are optional because the base model can run."
+        recommended_action = "No action required."
+    elif reasons:
+        reason = " ".join(reasons)
+        recommended_action = " ".join(dict.fromkeys(recommended_actions))
+    else:
+        reason = "ML is unavailable for an unknown reason."
+        recommended_action = "Review the backend logs for the ML import failure."
+    return {
+        "torch_available": torch is not None,
+        "torch_error": _TORCH_IMPORT_ERROR,
+        "audiocraft_available": _AUDIOCRAFT_AVAILABLE,
+        "audiocraft_error": _AUDIOCRAFT_IMPORT_ERROR,
+        "checkpoint_available": checkpoint_available,
+        "checkpoint_path": str(checkpoint_path) if checkpoint_path else None,
+        "ml_available": torch is not None and _AUDIOCRAFT_AVAILABLE,
+        "ml_reason": reason,
+        "recommended_action": recommended_action,
+        # Kept for older frontend clients.
+        "reason": reason,
+    }
 
 
 def get_checkpoint_path(soundfont_id: str = "snes") -> Optional[Path]:
@@ -68,12 +147,21 @@ def get_checkpoint_path(soundfont_id: str = "snes") -> Optional[Path]:
     return None
 
 
-def get_model_config() -> dict:
+def get_model_config(conditioning_type: str = "text") -> dict:
     """Get ML model configuration."""
+    legacy_model_name = os.getenv("MUSICGEN_MODEL_NAME")
+    default_model_name = (
+        os.getenv("MUSICGEN_MELODY_MODEL_NAME", "facebook/musicgen-melody")
+        if conditioning_type == "audio"
+        else os.getenv("MUSICGEN_TEXT_MODEL_NAME", "facebook/musicgen-small")
+    )
     return {
-        "model_name": os.getenv("MUSICGEN_MODEL_NAME", "facebook/musicgen-melody"),
+        "model_name": legacy_model_name or default_model_name,
         "duration": float(os.getenv("MUSICGEN_DURATION", "15.0")),
-        "device": os.getenv("MUSICGEN_DEVICE", "cuda" if torch.cuda.is_available() else "cpu"),
+        "device": os.getenv(
+            "MUSICGEN_DEVICE",
+            "cuda" if torch is not None and torch.cuda.is_available() else "cpu",
+        ),
         "top_k": int(os.getenv("MUSICGEN_TOP_K", "250")),
         "top_p": float(os.getenv("MUSICGEN_TOP_P", "0.0")),
         "temperature": float(os.getenv("MUSICGEN_TEMPERATURE", "1.0")),
@@ -83,16 +171,18 @@ def get_model_config() -> dict:
 class MusicGenInference:
     """Wrapper for MusicGen model loading and inference."""
     
-    def __init__(self, soundfont_id: str = "snes"):
-        if not _AUDIOCRAFT_AVAILABLE:
+    def __init__(self, soundfont_id: str = "snes", conditioning_type: str = "text"):
+        if torch is None or not _AUDIOCRAFT_AVAILABLE:
             raise RuntimeError(
                 "audiocraft not installed. Install with: pip install audiocraft"
             )
         
         self.soundfont_id = soundfont_id
+        self.conditioning_type = conditioning_type
         self.model = None
         self.checkpoint_loaded = False
-        self.config = get_model_config()
+        self.config = get_model_config(conditioning_type)
+        self.model_name = self.config["model_name"]
         self.device = self.config["device"]
     
     def load_model(self):
@@ -100,11 +190,15 @@ class MusicGenInference:
         if self.model is not None:
             return  # Already loaded
         
-        print(f"[ML] Loading MusicGen model: {self.config['model_name']} on {self.device}")
+        if torch.cuda.is_available():
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+
+        print(f"[ML] Loading MusicGen model: {self.model_name} on {self.device}")
         print(f"[ML] Target soundfont: {self.soundfont_id.upper()}")
         
         # Load base pretrained model
-        self.model = MusicGen.get_pretrained(self.config["model_name"], device=self.device)
+        self.model = MusicGen.get_pretrained(self.model_name, device=self.device)
         
         # Fine-tuned checkpoints are optional; base MusicGen supports text-only use.
         checkpoint_path = get_checkpoint_path(self.soundfont_id)
@@ -208,7 +302,7 @@ class MusicGenInference:
         print(f"[ML] Description: {descriptions[0]}")
         print(f"[ML] Target duration: {duration_s:.2f}s")
         
-        with torch.no_grad():
+        with torch.inference_mode():
             generated = self.model.generate_with_chroma(
                 descriptions=descriptions,
                 melody_wavs=melody,
@@ -257,7 +351,7 @@ class MusicGenInference:
         )
         print(f"[ML] Text description: {descriptions[0]}")
         print(f"[ML] Target duration: {duration_s:.2f}s")
-        with torch.no_grad():
+        with torch.inference_mode():
             generated = self.model.generate(
                 descriptions=descriptions,
                 progress=True,
@@ -279,13 +373,19 @@ class MusicGenInference:
         return output_path
 
 
-# Global instances per soundfont (lazy-loaded)
-_inference_instances: dict[str, MusicGenInference] = {}
+# Global instances keyed by model and conditioning type (lazy-loaded). The
+# text model is shared across soundfonts instead of being loaded once per style.
+_inference_instances: dict[tuple[str, str], MusicGenInference] = {}
 
 
-def get_inference_engine(soundfont_id: str = "snes") -> MusicGenInference:
-    """Get or create a MusicGen inference instance for the specified soundfont."""
+def get_inference_engine(
+    soundfont_id: str = "snes",
+    conditioning_type: str = "text",
+) -> MusicGenInference:
+    """Get or create an inference instance for the model/conditioning pair."""
     global _inference_instances
-    if soundfont_id not in _inference_instances:
-        _inference_instances[soundfont_id] = MusicGenInference(soundfont_id)
-    return _inference_instances[soundfont_id]
+    model_name = get_model_config(conditioning_type)["model_name"]
+    key = (model_name, conditioning_type)
+    if key not in _inference_instances:
+        _inference_instances[key] = MusicGenInference(soundfont_id, conditioning_type)
+    return _inference_instances[key]

@@ -67,6 +67,7 @@ def render_midi_to_audio(
     output_format: str = "mp3",
     debug_keep_wav: bool = False,
     synth_gain: float = DEFAULT_FLUIDSYNTH_GAIN,
+    normalize: bool = True,
 ) -> Path:
     output_path = midi_path.with_suffix(f".{output_format}")
     wav_path = midi_path.with_suffix(".wav")
@@ -108,8 +109,9 @@ def render_midi_to_audio(
     finally:
         _fluidsynth_processes.discard(proc)
 
-    # Loudness normalization pass (EBU R128, -14 LUFS, -1 dBTP)
-    if not normalize_loudness(wav_path):
+    # Loudness normalization pass (EBU R128, -14 LUFS, -1 dBTP). Audio
+    # prompts must retain the renderer's original dynamics for conditioning.
+    if normalize and not normalize_loudness(wav_path):
         import warnings
         warnings.warn(
             "Audio warning: ffmpeg not found. Install it to enable loudness normalization.",
@@ -172,4 +174,3 @@ def get_tool_versions() -> dict[str, str]:
     except Exception:
         pass
     return out
-

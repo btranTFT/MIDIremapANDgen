@@ -1,0 +1,15 @@
+# Optional MusicGen runtime. Install this after backend/requirements.txt.
+-r requirements.txt
+
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# AudioCraft is installed from source for compatibility with the inference
+# wrapper. Run this separately after the packages above:
+# pip install git+https://github.com/facebookresearch/audiocraft.git
+
+# Optional CPU-only workaround:
+# If a Windows Application Control policy blocks torch CUDA DLLs, install a
+# CPU-only PyTorch build from the official PyTorch instructions instead of
+# disabling or weakening the policy. MusicGen will run substantially slower
+# without CUDA acceleration.

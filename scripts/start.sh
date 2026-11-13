@@ -13,6 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND="$REPO_ROOT/backend"
 FRONTEND="$REPO_ROOT/frontend"
 BACKEND_PORT="${BACKEND_PORT:-8001}"
+INSTALL_ML="${INSTALL_ML:-0}"
 
 # ── Color helpers ──────────────────────────────────────────────────────────
 cyan() { printf '\033[0;36m%s\033[0m\n' "$*"; }
@@ -33,32 +34,28 @@ check_cmd fluidsynth "Audio rendering will be unavailable"
 check_cmd lame    "MP3 conversion will be unavailable"
 
 if [[ ! -f "$BACKEND/venv/bin/activate" ]]; then
-    yellow "  [WARN] Backend venv not found. Run:"
-    yellow "    cd $BACKEND && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+    cyan "[start.sh] Creating backend virtual environment..."
+    python3 -m venv "$BACKEND/venv"
 fi
 if [[ ! -d "$FRONTEND/node_modules" ]]; then
-    yellow "  [WARN] node_modules missing. Run: cd $FRONTEND && npm install"
+    cyan "[start.sh] Installing frontend dependencies..."
+    (cd "$FRONTEND" && npm install)
 fi
 
-# ── Auto-install ML dependencies if missing ───────────────────────────────
+# ── Install baseline dependencies by default ──────────────────────────────
 mkdir -p "$REPO_ROOT/MLtraining"
-if [[ -f "$BACKEND/venv/bin/pip" ]]; then
-    cyan "[start.sh] Checking ML dependencies..."
-    VENV_PY="$BACKEND/venv/bin/python"
+VENV_PIP="$BACKEND/venv/bin/pip"
+VENV_PY="$BACKEND/venv/bin/python"
+"$VENV_PIP" install -q -r "$BACKEND/requirements.txt"
 
-    if ! "$VENV_PY" -c "import torch" 2>/dev/null; then
-        yellow "[start.sh] Installing torch + torchaudio..."
-        "$BACKEND/venv/bin/pip" install -q torch torchaudio
-    fi
-
-    if ! "$VENV_PY" -c "from audiocraft.models import MusicGen" 2>/dev/null; then
-        yellow "[start.sh] Installing audiocraft from source..."
-        "$BACKEND/venv/bin/pip" install -q "git+https://github.com/facebookresearch/audiocraft.git"
-    fi
-
+# ── Optional ML dependencies ─────────────────────────────────────────────
+if [[ "$INSTALL_ML" == "1" ]]; then
+    cyan "[start.sh] Installing optional ML dependencies..."
+    "$VENV_PIP" install -q -r "$BACKEND/requirements-ml.txt"
+    "$VENV_PIP" install -q "git+https://github.com/facebookresearch/audiocraft.git"
     green "[start.sh] ML dependencies ready."
 else
-    yellow "  [WARN] Backend venv pip not found — skipping ML auto-install."
+    yellow "[start.sh] ML dependencies skipped (set INSTALL_ML=1 to install)."
 fi
 
 # ── Start backend ──────────────────────────────────────────────────────────

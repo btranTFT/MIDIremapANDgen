@@ -42,10 +42,13 @@ export interface UploadPanelProps {
   advancedReady: boolean;
   description: string;
   loading: boolean;
-  progress: number;
   primaryActionLabel?: string;
   mlAvailableSoundfonts: string[];
   mlAvailable: boolean;
+  mlUnavailableReason: string;
+  mlRecommendedAction: string;
+  torchError: string | null;
+  audiocraftError: string | null;
   maxUploadBytes: number;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onUpload: () => void;
@@ -67,10 +70,13 @@ export function UploadPanel({
   advancedReady,
   description,
   loading,
-  progress,
   primaryActionLabel,
   mlAvailableSoundfonts,
   mlAvailable,
+  mlUnavailableReason,
+  mlRecommendedAction,
+  torchError,
+  audiocraftError,
   onFileChange,
   onUpload,
   onModeChange,
@@ -81,13 +87,14 @@ export function UploadPanel({
   onAdvancedToggle,
   maxUploadBytes,
 }: UploadPanelProps) {
-  const isMlDisabled = loading || !mlAvailable;
+  const isMlDisabled = loading;
   const fileTooLarge = file != null && file.size > maxUploadBytes;
   const needsFile = mode === 'baseline' || mlPromptMode === 'audio';
   const needsDescription = mode === 'ml';
   const remasterDisabled =
     (needsFile && !file) ||
     (needsDescription && !description.trim()) ||
+    (mode === 'ml' && !mlAvailable) ||
     loading ||
     fileTooLarge;
   const status =
@@ -138,7 +145,7 @@ export function UploadPanel({
             className={'mode-btn' + (mode === 'ml' ? ' mode-btn-active' : '')}
             onClick={() => onModeChange('ml')}
             disabled={isMlDisabled}
-            title={!mlAvailable ? ML_UNAVAILABLE_TOOLTIP : MODE_ML_TOOLTIP}
+            title={!mlAvailable ? mlUnavailableReason : MODE_ML_TOOLTIP}
           >
             ML (MusicGen)
           </button>
@@ -155,7 +162,7 @@ export function UploadPanel({
         <div className="sf-board">
           {SOUNDFONTS.map(sf => {
             const isAvailableForML =
-              mode === 'baseline' || mlAvailableSoundfonts.includes(sf.id);
+              mode === 'baseline' || !mlAvailable || mlAvailableSoundfonts.includes(sf.id);
             return (
               <button
                 key={sf.id}
@@ -200,6 +207,21 @@ export function UploadPanel({
                 : 'Analyze the MIDI first, then adjust channels before remapping.'
               : 'Use the standard one-click baseline remap.'}
           </p>
+        </div>
+      )}
+
+      {mode === 'ml' && (
+        <div className={`ml-diagnostic${mlAvailable ? ' ml-diagnostic--ready' : ''}`} role="status">
+          <strong>{mlAvailable ? 'ML is ready' : 'ML is unavailable'}</strong>
+          <p>{mlAvailable ? 'MusicGen can generate audio. Checkpoints are optional.' : mlUnavailableReason}</p>
+          {!mlAvailable && torchError && <p><strong>Torch import error:</strong> {torchError}</p>}
+          {!mlAvailable && audiocraftError && <p><strong>AudioCraft import error:</strong> {audiocraftError}</p>}
+          {!mlAvailable && mlRecommendedAction && <p><strong>Recommended action:</strong> {mlRecommendedAction}</p>}
+          {!mlAvailable && (
+            <p className="ml-diagnostic__baseline">
+              Baseline SoundFont remastering remains available and does not require ML dependencies.
+            </p>
+          )}
         </div>
       )}
 
@@ -286,11 +308,9 @@ export function UploadPanel({
           <p className="hint hint--inline">Ready to remaster.</p>
         )}
         {loading && (
-          <div className="progress">
-            <div className="bar">
-              <div className="fill" style={{ width: `${progress}%` }} />
-            </div>
-            <span>{progress}%</span>
+          <div className="progress progress--indeterminate" role="status" aria-live="polite">
+            <div className="bar"><div className="fill" /></div>
+            <span>{mode === 'ml' ? 'Generating…' : 'Rendering…'}</span>
           </div>
         )}
       </div>

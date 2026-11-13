@@ -290,6 +290,21 @@ class TestAPIRemaster:
         assert body.get("request_id")
         assert isinstance(body.get("channels"), list)
         assert len(body["channels"]) >= 1
+        assert isinstance(body.get("notes"), list)
+        assert len(body["notes"]) > 0
+        assert all(note["duration_ticks"] > 0 for note in body["notes"])
+        channel_note_counts = {
+            channel["channel"]: channel["note_count"]
+            for channel in body["channels"]
+        }
+        response_note_counts = {
+            channel: sum(note["channel"] == channel for note in body["notes"])
+            for channel in channel_note_counts
+        }
+        assert response_note_counts == channel_note_counts
+        assert "ticks_per_beat" in body
+        assert "duration_seconds" in body
+        assert "tempo" in body
         assert isinstance(body.get("available_programs"), list)
         assert body.get("preserve_compatible_programs") is True
         assert body["channels"][0]["defaults"]["program"] is None
@@ -453,6 +468,36 @@ class TestAPIRemaster:
         assert "logs" in body, "Missing logs"
         assert isinstance(body["logs"], list)
         assert body["soundfont"] == style
+        visualization = body["visualization"]
+        assert visualization is not None, body.get("visualization_error")
+        assert visualization["source"] == "remapped"
+        assert visualization["soundfont"] == style
+        assert isinstance(visualization["channels"], list)
+        assert visualization["channels"]
+        assert isinstance(visualization["notes"], list)
+        assert visualization["notes"]
+        assert any(channel["note_count"] > 0 for channel in visualization["channels"])
+        assert all(note["duration_ticks"] > 0 for note in visualization["notes"])
+        head_resp = client.head(body["midi_url"])
+        assert head_resp.status_code == 200
+        visualization_resp = client.get(
+            f"/api/remaster/{body['request_id']}/visualization"
+        )
+        assert visualization_resp.status_code == 200
+        fetched_visualization = visualization_resp.json()
+        assert fetched_visualization["source"] == "remapped"
+        assert fetched_visualization["notes"]
+        assert any(
+            channel["note_count"] > 0
+            for channel in fetched_visualization["channels"]
+        )
+
+    def test_remaster_visualization_missing_workspace_returns_error(self):
+        response = TestClient(app).get(
+            "/api/remaster/00000000000000000000000000000000/visualization"
+        )
+        assert response.status_code == 404
+        assert "Workspace not found" in str(response.json()["detail"])
 
     def test_remaster_invalid_extension_returns_400(self, tmp_path):
         client = TestClient(app)

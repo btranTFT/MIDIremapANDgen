@@ -12,13 +12,8 @@ python-dotenv>=1.0.0
 scipy>=1.10.0
 soundfile>=0.12.1
 
-# ML generation (/api/remaster_ml). Use Python 3.11.
-torch>=2.0.0
-torchaudio>=2.0.0
-# audiocraft: install from source after pip install:
-#   pip install git+https://github.com/facebookresearch/audiocraft.git
+# ML generation is optional. Install backend/requirements-ml.txt for it.
 
 # Dev / test
 httpx>=0.25.0       # required by FastAPI TestClient
 pytest>=7.0.0
-# GPU: install PyTorch with CUDA from https://pytorch.org/get-started/locally/

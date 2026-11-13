@@ -15,6 +15,7 @@ export interface ChannelOverride {
 
 export interface AdvancedChannelAnalysis {
   channel: number;
+  track_name?: string;
   is_drum: boolean;
   original_program: number | null;
   original_program_name: string | null;
@@ -24,6 +25,7 @@ export interface AdvancedChannelAnalysis {
   pitch_min: number | null;
   pitch_max: number | null;
   avg_velocity: number | null;
+  density?: number;
   defaults: ChannelOverride;
 }
 
@@ -39,7 +41,26 @@ export interface AdvancedAnalysisResult {
   source_style?: SoundfontId | null;
   preserve_compatible_programs?: boolean;
   channels: AdvancedChannelAnalysis[];
+  notes?: MidiNote[];
+  duration_seconds?: number;
+  ticks_per_beat?: number;
+  tempo?: number;
   available_programs: ProgramOption[];
+}
+
+export interface MidiNote {
+  id: string;
+  track: number;
+  track_name: string;
+  channel: number;
+  pitch: number;
+  start_tick: number;
+  duration_ticks: number;
+  start_seconds: number;
+  duration_seconds: number;
+  velocity: number;
+  program: number;
+  instrument_name: string;
 }
 
 interface AdvancedBaselinePanelProps {

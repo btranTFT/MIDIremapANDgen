@@ -38,7 +38,30 @@ When training a new model for a soundfont:
 
 ## Technical details
 
-- Base model: `facebook/musicgen-melody` (1.5B parameters, supports audio conditioning)
+- Text model: `facebook/musicgen-small` by default for text-only prompts
+- Melody model: `facebook/musicgen-melody` for audio-conditioned prompts
+- `MUSICGEN_MODEL_NAME` remains available as a legacy override and takes
+  precedence over both conditioning-specific model variables
 - Checkpoint contains: Language model state dict only
 - Backend loads base MusicGen, then applies checkpoint weights via `lm.load_state_dict()`
-- Each soundfont gets its own model instance (cached in `_inference_instances`)
+- Inference engines are cached by model and conditioning type, so the shared
+  text model is not loaded once per soundfont.
+
+## Installing ML dependencies
+
+Baseline backend installation intentionally excludes PyTorch:
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+Install optional ML dependencies separately:
+
+```bash
+pip install -r requirements-ml.txt
+pip install git+https://github.com/facebookresearch/audiocraft.git
+```
+
+The development launchers keep this opt-in: use `INSTALL_ML=1` with
+`scripts/start.sh` or `scripts/start.ps1 -InstallML`.
