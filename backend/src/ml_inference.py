@@ -168,6 +168,33 @@ def get_model_config(conditioning_type: str = "text") -> dict:
     }
 
 
+def get_device_diagnostics(device: str) -> dict:
+    diagnostics = {
+        "selected_device": str(device),
+        "cuda_available": False,
+        "gpu_name": None,
+        "allocated_memory_bytes": None,
+    }
+    try:
+        diagnostics["cuda_available"] = bool(torch is not None and torch.cuda.is_available())
+        if diagnostics["cuda_available"]:
+            cuda_device = device if str(device).startswith("cuda") else None
+            diagnostics["gpu_name"] = torch.cuda.get_device_name(cuda_device)
+            if cuda_device is not None:
+                diagnostics["allocated_memory_bytes"] = int(torch.cuda.memory_allocated(cuda_device))
+    except Exception:
+        pass
+    return diagnostics
+
+
+def release_cuda_cache(device: str) -> None:
+    try:
+        if str(device).startswith("cuda") and torch is not None and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+
+
 class MusicGenInference:
     """Wrapper for MusicGen model loading and inference."""
     
@@ -198,7 +225,8 @@ class MusicGenInference:
         print(f"[ML] Target soundfont: {self.soundfont_id.upper()}")
         
         # Load base pretrained model
-        self.model = MusicGen.get_pretrained(self.model_name, device=self.device)
+        model = MusicGen.get_pretrained(self.model_name, device=self.device)
+        checkpoint_loaded = False
         
         # Fine-tuned checkpoints are optional; base MusicGen supports text-only use.
         checkpoint_path = get_checkpoint_path(self.soundfont_id)
@@ -214,8 +242,8 @@ class MusicGenInference:
                 state_dict = raw
                 print("[ML] Checkpoint format: raw state dict")
 
-            if hasattr(self.model, "lm") and hasattr(self.model.lm, "load_state_dict"):
-                result = self.model.lm.load_state_dict(state_dict, strict=False)
+            if hasattr(model, "lm") and hasattr(model.lm, "load_state_dict"):
+                result = model.lm.load_state_dict(state_dict, strict=False)
                 if result.missing_keys:
                     print(f"[ML] WARNING: {len(result.missing_keys)} missing keys in checkpoint "
                           f"(first 5: {result.missing_keys[:5]})")
@@ -223,18 +251,20 @@ class MusicGenInference:
                     print(f"[ML] WARNING: {len(result.unexpected_keys)} unexpected keys in checkpoint "
                           f"(first 5: {result.unexpected_keys[:5]})")
                 loaded = len(state_dict) - len(result.missing_keys)
-                self.checkpoint_loaded = True
+                checkpoint_loaded = True
                 print(f"[ML] Checkpoint loaded: {loaded}/{len(state_dict)} keys matched "
                       f"for {self.soundfont_id.upper()} language model")
         else:
             print(f"[ML] No checkpoint for {self.soundfont_id.upper()}; using base MusicGen")
         
-        self.model.set_generation_params(
+        model.set_generation_params(
             duration=self.config["duration"],
             top_k=self.config["top_k"],
             top_p=self.config["top_p"],
             temperature=self.config["temperature"],
         )
+        self.model = model
+        self.checkpoint_loaded = checkpoint_loaded
         
         print(f"[ML] Model ready for inference ({self.soundfont_id.upper()})")
     
@@ -373,9 +403,11 @@ class MusicGenInference:
         return output_path
 
 
-# Global instances keyed by model and conditioning type (lazy-loaded). The
-# text model is shared across soundfonts instead of being loaded once per style.
-_inference_instances: dict[tuple[str, str], MusicGenInference] = {}
+# Global instances keyed by model and conditioning type. Instances with
+# soundfont-specific checkpoints also include the soundfont ID so fine-tuned
+# styles cannot be reused across requests. Instances without checkpoints remain
+# shared as base models across soundfonts.
+_inference_instances: dict[tuple[str, ...], MusicGenInference] = {}
 
 
 def get_inference_engine(
@@ -385,7 +417,20 @@ def get_inference_engine(
     """Get or create an inference instance for the model/conditioning pair."""
     global _inference_instances
     model_name = get_model_config(conditioning_type)["model_name"]
-    key = (model_name, conditioning_type)
+
+    checkpoint_path = get_checkpoint_path(soundfont_id)
+    has_soundfont_checkpoint = bool(checkpoint_path and checkpoint_path.exists())
+
+    if has_soundfont_checkpoint:
+        key = (model_name, conditioning_type, soundfont_id)
+    else:
+        key = (model_name, conditioning_type)
+
     if key not in _inference_instances:
         _inference_instances[key] = MusicGenInference(soundfont_id, conditioning_type)
-    return _inference_instances[key]
+
+    engine = _inference_instances[key]
+    # A base-model engine may be shared across soundfonts. Keep the engine
+    # metadata aligned with every request, including requests after cache reuse.
+    engine.soundfont_id = soundfont_id
+    return engine

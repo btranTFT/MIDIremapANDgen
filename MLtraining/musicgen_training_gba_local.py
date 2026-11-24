@@ -407,7 +407,8 @@ for epoch in range(TRAINING_CONFIG['num_epochs']):
     # Save best model
     if val_loss < best_val_loss:
         best_val_loss = val_loss
-        best_model_path = CHECKPOINT_DIR / f"best_model_{TRAINING_CONFIG['soundfont']}.pt"
+        best_model_filename = f"best_model_{TRAINING_CONFIG['soundfont']}.pt"
+        best_model_path = CHECKPOINT_DIR / best_model_filename
         torch.save({
             'epoch': epoch + 1,
             'model_state_dict': lm.state_dict(),
@@ -422,7 +423,10 @@ print("TRAINING COMPLETE!")
 print(f"{'='*60}")
 print(f"Total time: {total_time/3600:.2f} hours")
 print(f"Best validation loss: {best_val_loss:.4f}")
-print(f"Best model: {CHECKPOINT_DIR / f'best_model_{TRAINING_CONFIG[\"soundfont\"]}.pt'}")
+soundfont_name = TRAINING_CONFIG["soundfont"]
+best_model_filename = f"best_model_{soundfont_name}.pt"
+best_model_path = CHECKPOINT_DIR / best_model_filename
+print(f"Best model: {best_model_path}")
 print()
 
 # Save training history
@@ -433,6 +437,6 @@ with open(history_path, 'w') as f:
 print(f"✓ Training history saved to: {history_path}")
 print()
 print("To use this model:")
-print(f"1. Copy {CHECKPOINT_DIR / f'best_model_{TRAINING_CONFIG[\"soundfont\"]}.pt'}")
-print(f"2. To: {PROJECT_DIR / f'best_model_{TRAINING_CONFIG[\"soundfont\"]}.pt'}")
+print(f"1. Copy {best_model_path}")
+print(f"2. To: {PROJECT_DIR / best_model_filename}")
 print("3. Restart the app - the model will be automatically detected!")

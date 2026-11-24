@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { head } from './api';
+import { head, type MlJobStatus } from './api';
 import type { VisualizationPayload } from './SoundfontVisualizerPanel';
+import type { SoundfontId } from './UploadPanel';
 
 export interface ProvenanceMetadata {
   input_filename?: string;
@@ -17,6 +18,7 @@ export interface ProvenanceMetadata {
   fallback_to_base?: boolean;
   model_name?: string;
   checkpoint_loaded?: boolean;
+  edit_version?: number;
 }
 
 export interface RemasterResult {
@@ -46,7 +48,9 @@ export interface RemasterResult {
 export interface ResultPanelProps {
   error: import('./api').ErrorDisplay | null;
   result: RemasterResult | null;
+  selectedSoundfont: SoundfontId;
   loading?: boolean;
+  mlJob?: MlJobStatus | null;
   resolveUrl: (url?: string | null) => string | undefined;
   onPlaybackTimeChange?: (seconds: number) => void;
 }
@@ -80,7 +84,9 @@ ClassificationsList.displayName = 'ClassificationsList';
 export function ResultPanel({
   error,
   result,
+  selectedSoundfont,
   loading = false,
+  mlJob,
   resolveUrl,
   onPlaybackTimeChange,
 }: ResultPanelProps) {
@@ -97,13 +103,16 @@ export function ResultPanel({
   const activeAudioUrl = hasAB ? audioUrls[audioSourceIndex] : audioUrls[0];
   const resolvedAudio = activeAudioUrl ? resolveUrl(activeAudioUrl) : undefined;
   const resolvedMidi = result?.midi_url ? resolveUrl(result.midi_url) : undefined;
+  const resultSoundfont = result?.soundfont ?? result?.prompt_soundfont ?? result?.metadata?.style;
+  const isStale = Boolean(resultSoundfont && resultSoundfont.toLowerCase() !== selectedSoundfont);
+  const isMlResult = result?.method === 'musicgen_ml' || result?.metadata?.mode === 'ml';
 
   // Reset unavailable state when result changes
   useEffect(() => {
     if (!result) return;
     setAudioUnavailable(false);
     setMidiUnavailable(false);
-  }, [result?.request_id]);
+  }, [result?.request_id, resolvedMidi]);
 
   // HEAD check for MIDI when we have a URL (detect expired/deleted)
   useEffect(() => {
@@ -161,10 +170,18 @@ export function ResultPanel({
                 : 'Idle'}
         </span>
       </div>
+      {mlJob && (
+        <div className="result-section" role="status" aria-live="polite">
+          <strong>{mlJob.status === 'queued' ? 'Queued' : mlJob.stage.replace(/_/g, ' ')}</strong>
+          <p>{mlJob.message} ({Math.round(mlJob.progress)}%)</p>
+          <progress value={mlJob.progress} max={100} aria-label="Approximate ML job progress" />
+        </div>
+      )}
       {error && (
         <div className="error-block">
           <p className="error-block__headline">{error.headline}</p>
           <p className="error-block__next">{error.nextStep}</p>
+          {mlJob && <p className="error-block__detail">{error.detail}</p>}
           <details className="error-block__details">
             <summary>Details</summary>
             <div className="error-block__body">
@@ -183,7 +200,9 @@ export function ResultPanel({
               <h3>Play & download</h3>
             </div>
             <p className="hint hint--downloads">
-              Preview and save the remastered MIDI and rendered audio.
+              {result.method === 'musicgen_ml' || result.metadata?.mode === 'ml'
+                ? 'Generated audio'
+                : 'Preview and save the remastered MIDI and rendered audio.'}
             </p>
             {result.audio_url && !result.audio_error && (
               <div className="result-audio-block">
@@ -275,22 +294,15 @@ export function ResultPanel({
             <div className="section-header">
               <h3>Details</h3>
             </div>
+            {result.metadata?.edit_version != null && <p><strong>Edited version {result.metadata.edit_version}</strong></p>}
             {result.method && (
               <p>
                 Method: <strong>{result.method.toUpperCase()}</strong>
               </p>
             )}
-            {result.soundfont && (
-              <p>
-                Soundfont: <strong>{result.soundfont.toUpperCase()}</strong>
-              </p>
-            )}
-            {result.prompt_soundfont && (
-              <p>
-                Prompt soundfont:{' '}
-                <strong>{result.prompt_soundfont.toUpperCase()}</strong>
-              </p>
-            )}
+            <p>Selected soundfont for the next operation: <strong>{selectedSoundfont.toUpperCase()}</strong></p>
+            <p>Soundfont used by this result: <strong>{resultSoundfont?.toUpperCase() ?? 'Unknown'}</strong></p>
+            {isStale && <p className="warning" role="status">Previous result: {isMlResult ? 'generated' : 'rendered'} using {resultSoundfont?.toUpperCase()}. {isMlResult ? `Generate again using ${selectedSoundfont.toUpperCase()}.` : `Select it again to edit, or remaster using ${selectedSoundfont.toUpperCase()}.`}</p>}
             {result.description && (
               <p>
                 Description: <em>{result.description}</em>

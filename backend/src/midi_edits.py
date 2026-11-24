@@ -43,13 +43,17 @@ def _ticks_to_seconds(ticks: int, ticks_per_beat: int, tempo_changes: list[tuple
     return seconds
 
 
-def _extract_note_events(midi: mido.MidiFile) -> tuple[list[dict], float, int, int]:
+def _extract_note_events(
+    midi: mido.MidiFile,
+    event_pairs: dict[str, tuple[int, int, int | None]] | None = None,
+) -> tuple[list[dict], float, int, int]:
     """Extract note rectangles from the source MIDI without inventing timing."""
     tempo_changes = _tempo_map(midi)
     notes: list[dict] = []
     note_on_count = 0
     note_off_count = 0
     velocity_zero_note_on_count = 0
+    note_sequence = 0
     for track_index, track in enumerate(midi.tracks):
         absolute_tick = 0
         track_name = next(
@@ -57,8 +61,8 @@ def _extract_note_events(midi: mido.MidiFile) -> tuple[list[dict], float, int, i
             f"Track {track_index + 1}",
         )
         programs: dict[int, int | None] = {}
-        active: dict[tuple[int, int], list[tuple[int, int, int | None]]] = {}
-        for message in track:
+        active: dict[tuple[int, int], list[tuple[int, int, int | None, int]]] = {}
+        for event_index, message in enumerate(track):
             absolute_tick += message.time
             if message.type == "program_change":
                 programs[message.channel] = message.program
@@ -75,7 +79,7 @@ def _extract_note_events(midi: mido.MidiFile) -> tuple[list[dict], float, int, i
             key = (message.channel, message.note)
             if message.type == "note_on" and message.velocity > 0:
                 active.setdefault(key, []).append(
-                    (absolute_tick, message.velocity, programs.get(message.channel))
+                    (absolute_tick, message.velocity, programs.get(message.channel), event_index)
                 )
             elif message.type == "note_off" or (
                 message.type == "note_on" and message.velocity == 0
@@ -83,12 +87,15 @@ def _extract_note_events(midi: mido.MidiFile) -> tuple[list[dict], float, int, i
                 starts = active.get(key)
                 if not starts:
                     continue
-                start_tick, velocity, program = starts.pop()
+                start_tick, velocity, program, start_index = starts.pop()
                 start_seconds = _ticks_to_seconds(start_tick, midi.ticks_per_beat, tempo_changes)
                 end_seconds = _ticks_to_seconds(absolute_tick, midi.ticks_per_beat, tempo_changes)
+                note_id = f"{track_index}-{message.channel}-{message.note}-{start_tick}-{note_sequence}"
+                if event_pairs is not None:
+                    event_pairs[note_id] = (track_index, start_index, event_index)
                 notes.append(
                     {
-                        "id": f"{track_index}-{message.channel}-{message.note}-{start_tick}",
+                        "id": note_id,
                         "track": track_index,
                         "track_name": track_name,
                         "channel": message.channel,
@@ -102,13 +109,17 @@ def _extract_note_events(midi: mido.MidiFile) -> tuple[list[dict], float, int, i
                         "instrument_name": get_program_name(program),
                     }
                 )
+                note_sequence += 1
         track_end = _ticks_to_seconds(absolute_tick, midi.ticks_per_beat, tempo_changes)
         for (channel, pitch), starts in active.items():
-            for start_tick, velocity, program in starts:
+            for start_tick, velocity, program, start_index in starts:
                 start_seconds = _ticks_to_seconds(start_tick, midi.ticks_per_beat, tempo_changes)
+                note_id = f"{track_index}-{channel}-{pitch}-{start_tick}-{note_sequence}"
+                if event_pairs is not None:
+                    event_pairs[note_id] = (track_index, start_index, None)
                 notes.append(
                     {
-                        "id": f"{track_index}-{channel}-{pitch}-{start_tick}",
+                        "id": note_id,
                         "track": track_index,
                         "track_name": track_name,
                         "channel": channel,
@@ -122,6 +133,7 @@ def _extract_note_events(midi: mido.MidiFile) -> tuple[list[dict], float, int, i
                         "instrument_name": get_program_name(program),
                     }
                 )
+                note_sequence += 1
     notes_per_channel: dict[int, int] = {}
     for note in notes:
         notes_per_channel[note["channel"]] = notes_per_channel.get(note["channel"], 0) + 1
@@ -157,6 +169,8 @@ def build_visualization_payload(
 ) -> dict:
     """Build read-only visualizer data from the exact MIDI being rendered."""
     notes = extract_midi_notes(midi)
+    if not notes:
+        raise ValueError("MIDI contains no extractable note events")
     programs = get_channel_programs(midi)
     channels_by_id: dict[int, dict] = {}
     for channel in get_active_channels(midi):

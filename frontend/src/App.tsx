@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 
-import { API_BASE, request, toErrorDisplay } from './api';
+import { API_BASE, pollMlJob, request, toErrorDisplay, type MlJobStatus, type MlJobSubmission } from './api';
 import {
   getChannelDefaultOverride,
   type AdvancedAnalysisResult,
@@ -10,14 +10,14 @@ import { LogsPanel } from './LogsPanel';
 import type { LogEntry } from './LogsPanel';
 import type { RemasterResult } from './ResultPanel';
 import { ResultPanel } from './ResultPanel';
-import { SoundfontVisualizerPanel, type VisualizationPayload } from './SoundfontVisualizerPanel';
+import { SoundfontVisualizerPanel } from './SoundfontVisualizerPanel';
 import {
   UploadPanel,
   type MlPromptMode,
   type RemasterMode,
   type SoundfontId,
 } from './UploadPanel';
-import './styles.css';
+import './workstation.css';
 
 const CAPABILITIES_TIMEOUT_MS = 5000;
 const DEFAULT_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -59,15 +59,19 @@ function App() {
   const [audiocraftError, setAudiocraftError] = useState<string | null>(null);
   const [maxUploadBytes, setMaxUploadBytes] = useState(DEFAULT_MAX_UPLOAD_BYTES);
   const [result, setResult] = useState<RemasterResult | null>(null);
-  const [visualization, setVisualization] = useState<VisualizationPayload | null>(null);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [applyingMidi, setApplyingMidi] = useState(false);
+  const [mlJob, setMlJob] = useState<MlJobStatus | null>(null);
+  const mlPolling = React.useRef<AbortController | null>(null);
+  const mlSubmitting = React.useRef(false);
   const [error, setError] = useState<import('./api').ErrorDisplay | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [activeMobileTab, setActiveMobileTab] = useState<
-    'upload' | 'logs' | 'result'
-  >('upload');
+
+  React.useEffect(() => () => {
+    mlPolling.current?.abort();
+  }, []);
 
   React.useLayoutEffect(() => {
     const savedTheme = window.localStorage.getItem('midi-remaster-theme');
@@ -137,7 +141,6 @@ function App() {
       setAnalysis(null);
       setChannelOverrides({});
       setResult(null);
-      setVisualization(null);
       setPlaybackTime(0);
       setError(null);
       setLogs([]);
@@ -208,20 +211,25 @@ function App() {
   };
 
   const handleUpload = async () => {
+    if (mode === 'ml' && mlSubmitting.current) return;
     if (!file && (mode === 'baseline' || mlPromptMode === 'audio')) return;
     if (mode === 'baseline' && advancedEnabled && !analysis) {
       await handleAnalyze();
       return;
     }
+    mlPolling.current?.abort();
+    const controller = mode === 'ml' ? new AbortController() : null;
+    mlPolling.current = controller;
+    if (controller) mlSubmitting.current = true;
+    setMlJob(null);
     setLoading(true);
     setError(null);
     setResult(null);
-    setVisualization(null);
     setPlaybackTime(0);
     setLogs([]);
 
     try {
-      const endpoint = mode === 'ml' ? '/api/remaster_ml' : '/api/remaster';
+      const endpoint = mode === 'ml' ? '/api/remaster_ml/jobs' : '/api/remaster';
       addLog(
         `Mode: ${mode.toUpperCase()} | Soundfont: ${soundfont.toUpperCase()}`,
         'info',
@@ -266,7 +274,7 @@ function App() {
         timeoutMs,
       });
 
-      const data = await request<
+      type ResultWithLogs =
         RemasterResult & {
           logs?: Array<{
             ts?: string;
@@ -275,12 +283,20 @@ function App() {
             message?: string;
             debug?: string;
           }>;
-        }
-      >(endpoint, {
-        method: 'POST',
-        body: formData,
-        timeoutMs,
-      });
+        };
+      let data: ResultWithLogs;
+      if (controller) {
+        const submission = await request<MlJobSubmission>(endpoint, {
+          method: 'POST', body: formData, timeoutMs: 120000, signal: controller.signal,
+        });
+        if (!submission.job_id) throw new Error('Invalid response: missing job_id');
+        if (controller.signal.aborted) return;
+        setMlJob({ job_id: submission.job_id, status: 'queued', stage: 'validating', progress: 0,
+          message: 'Queued for generation', error: null, result: null });
+        data = await pollMlJob(submission.job_id, controller.signal, setMlJob);
+      } else {
+        data = await request<ResultWithLogs>(endpoint, { method: 'POST', body: formData, timeoutMs });
+      }
 
       // Ensure required fields exist before setting result
       if (!data.request_id) {
@@ -289,7 +305,6 @@ function App() {
       }
 
       setResult(data);
-      setVisualization(data.visualization ?? null);
       if (mode === 'baseline' && !data.visualization) {
         addLog(
           data.visualization_error ?? 'Baseline response did not include remapped MIDI visualization.',
@@ -317,6 +332,7 @@ function App() {
         addLog(`Audio warning: ${data.audio_error}`, 'warning', 'encode');
       }
     } catch (err) {
+      if (controller?.signal.aborted) return;
       // Debug logging: log error details
       console.error('[Remaster] Request failed:', err);
       if (err instanceof Error) {
@@ -327,7 +343,13 @@ function App() {
       setError(display);
       addLog(display.detail, 'error', undefined, display.debug);
     } finally {
-      setLoading(false);
+      if (!controller || mlPolling.current === controller) {
+        if (controller) {
+          mlPolling.current = null;
+          mlSubmitting.current = false;
+        }
+        if (!controller?.signal.aborted) setLoading(false);
+      }
     }
   };
 
@@ -340,17 +362,17 @@ function App() {
     <div className={`app app--${theme}`}>
       <header className="app-header">
         <div className="brand-stack">
-          <div className="brand-kicker">Audio workspace</div>
           <h1>MIDI Remaster Lab</h1>
-          <p>Make your soundtrack playable again.</p>
         </div>
         <div className="header-actions">
+          <span className="toolbar-context"><span>Mode</span> <strong>{mode === 'baseline' ? 'Baseline' : 'MusicGen'}</strong></span>
+          <span className="toolbar-context"><span>Soundfont</span> <strong>{soundfont.toUpperCase()}</strong></span>
           <div className="header-console">
             <span className={`status-dot ${mlAvailable ? 'status-dot--active' : ''}`} />
             {mlAvailable ? 'Baseline + ML ready' : 'Baseline ready · ML unavailable'}
           </div>
-          <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
-            {theme === 'dark' ? '☼ Light' : '☾ Dark'}
+          <button type="button" className="theme-toggle" onClick={toggleTheme} aria-pressed={theme === 'dark'} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+            Theme: {theme === 'dark' ? 'Dark' : 'Light'}
           </button>
         </div>
       </header>
@@ -359,40 +381,8 @@ function App() {
         <main
           className={`app-main ${mode === 'baseline' && advancedEnabled && analysis ? 'app-main--advanced-desktop' : ''}`}
         >
-        <nav
-          className="app-main__mobile-tabs"
-          aria-label="Sections"
-        >
-          <button
-            type="button"
-            className={`app-main__mobile-tab ${activeMobileTab === 'upload' ? 'app-main__mobile-tab--active' : ''}`}
-            onClick={() => setActiveMobileTab('upload')}
-            aria-pressed={activeMobileTab === 'upload'}
-          >
-            Upload
-          </button>
-          <button
-            type="button"
-            className={`app-main__mobile-tab ${activeMobileTab === 'logs' ? 'app-main__mobile-tab--active' : ''}`}
-            onClick={() => setActiveMobileTab('logs')}
-            aria-pressed={activeMobileTab === 'logs'}
-          >
-            Logs
-          </button>
-          <button
-            type="button"
-            className={`app-main__mobile-tab ${activeMobileTab === 'result' ? 'app-main__mobile-tab--active' : ''}`}
-            onClick={() => setActiveMobileTab('result')}
-            aria-pressed={activeMobileTab === 'result'}
-          >
-            Result
-          </button>
-        </nav>
         <section className="app-main__top-grid">
-          <div
-            className={`app-main__panel-wrap app-main__upload ${activeMobileTab === 'upload' ? 'app-main__panel-wrap--visible' : ''}`}
-            data-panel="upload"
-          >
+          <div className="app-main__panel-wrap app-main__upload" data-panel="upload">
               <UploadPanel
                 file={file}
             soundfont={soundfont}
@@ -402,7 +392,7 @@ function App() {
             advancedEnabled={advancedEnabled}
             advancedReady={Boolean(analysis)}
             description={description}
-            loading={loading}
+            loading={loading || applyingMidi}
             primaryActionLabel={
               mode === 'baseline' && advancedEnabled
                 ? analysis
@@ -431,7 +421,6 @@ function App() {
             onMlDurationChange={setMlDuration}
             onSoundfontChange={nextSoundfont => {
               setSoundfont(nextSoundfont);
-              setVisualization(null);
               setAnalysis(null);
               setChannelOverrides({});
             }}
@@ -445,42 +434,72 @@ function App() {
             }}
             />
           </div>
-          <div
-            className={`app-main__panel-wrap app-main__logs ${activeMobileTab === 'logs' ? 'app-main__panel-wrap--visible' : ''}`}
-            data-panel="logs"
-          >
+          <details className="app-main__logs" data-panel="logs">
+            <summary>Logs <span>{logs.length}</span></summary>
             <LogsPanel logs={logs} />
-          </div>
-          <div
-            className={`app-main__panel-wrap app-main__result ${activeMobileTab === 'result' ? 'app-main__panel-wrap--visible' : ''}`}
-            data-panel="result"
-          >
-            <ResultPanel
-              error={error}
-              result={result}
-              loading={loading}
-              resolveUrl={resolveUrl}
-              onPlaybackTimeChange={setPlaybackTime}
-            />
-          </div>
+          </details>
         </section>
         <section className="app-main__visualizer-row remapped-visualizer-row">
           {result?.visualization ? (
             <SoundfontVisualizerPanel
+              key={`${result.request_id}:${result.midi_url ?? ''}:${soundfont}`}
               visualization={result.visualization}
-              readOnly
+              readOnly={!result.midi_url || result.method === 'musicgen_ml' || result.metadata?.mode === 'ml' || (result.soundfont ?? result.metadata?.style ?? '').toLowerCase() !== soundfont}
+              requestId={result.request_id}
+              onApplyingChange={setApplyingMidi}
+              onEdited={edited => {
+                setResult(edited);
+                setPlaybackTime(0);
+                setError(null);
+                if (Array.isArray(edited.logs)) {
+                  setLogs(previous => [...previous, ...edited.logs!.filter(event => typeof event.message === 'string').map(event => ({
+                    ts: event.ts ?? '', message: event.message ?? 'Unknown message',
+                    level: (event.level === 'warn' ? 'warn' : event.level === 'error' ? 'error' : 'info') as LogEntry['level'],
+                    step: event.step ?? '', debug: event.debug,
+                  }))]);
+                }
+                if (edited.audio_error) addLog(`Audio warning: ${edited.audio_error}`, 'warning', 'encode');
+              }}
               playbackTime={playbackTime}
             />
+          ) : result?.method === 'musicgen_ml' || result?.metadata?.mode === 'ml' ? (
+            <div className="remapped-visualizer-placeholder remapped-visualizer-placeholder--ml">
+              <span className="eyebrow">Generated output</span>
+              <h2>{result.prompt_mode === 'audio' ? 'Generated audio · MIDI-conditioned' : 'Generated audio'}</h2>
+              {result.prompt_mode === 'audio' ? (
+                <p>
+                  The uploaded MIDI was rendered and used as an audio conditioning prompt.
+                  MusicGen generated new audio, but did not produce a MIDI channel map.
+                </p>
+              ) : (
+                <p>
+                  MusicGen generated audio from the text prompt. This output is audio-only and
+                  does not include a remapped MIDI channel map.
+                </p>
+              )}
+              <p className="hint">MIDI visualization is unavailable for MusicGen output.</p>
+            </div>
           ) : result ? (
             <p className="remapped-visualizer-placeholder">
-              {result.visualization_error ?? 'No remapped MIDI visualization was returned.'}
+              {result.visualization_error ?? 'Remapped MIDI visualization is unavailable.'}
             </p>
           ) : (
             <p className="remapped-visualizer-placeholder">
-              Remapped channel visualization will appear after remastering.
+              Remapped MIDI channels will appear after baseline remastering.
             </p>
           )}
         </section>
+        <div className="app-main__result" data-panel="result">
+          <ResultPanel
+            error={error}
+            result={result}
+            selectedSoundfont={soundfont}
+            loading={loading || applyingMidi}
+            mlJob={mlJob}
+            resolveUrl={resolveUrl}
+            onPlaybackTimeChange={setPlaybackTime}
+          />
+        </div>
         </main>
       </div>
 

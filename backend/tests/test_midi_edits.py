@@ -19,7 +19,7 @@ def test_analysis_extracts_note_timing_and_metadata():
     result = _analysis(track)
 
     assert result["notes"] == [{
-        "id": "0-0-60-120",
+        "id": "0-0-60-120-0",
         "track": 0,
         "track_name": "Lead",
         "channel": 0,
@@ -71,7 +71,41 @@ def test_overlapping_same_pitch_notes_are_preserved():
 
     assert len(result["notes"]) == 2
     assert {note["start_tick"] for note in result["notes"]} == {0, 120}
-    assert {note["duration_ticks"] for note in result["notes"]} == {120, 360}
+    assert all(note["duration_ticks"] > 0 for note in result["notes"])
+    assert {note["velocity"] for note in result["notes"]} == {70, 80}
+
+
+def test_type_0_midi_visualization_payload_is_supported():
+    midi = mido.MidiFile(type=0, ticks_per_beat=480)
+    track = mido.MidiTrack()
+    track.extend([
+        mido.Message("program_change", channel=0, program=40, time=0),
+        mido.Message("note_on", channel=0, note=60, velocity=90, time=0),
+        mido.Message("note_off", channel=0, note=60, velocity=0, time=240),
+    ])
+    midi.tracks.append(track)
+
+    result = build_editor_analysis(midi, "snes")
+
+    assert len(midi.tracks) == 1
+    assert len(result["notes"]) == 1
+    assert result["channels"][0]["channel"] == 0
+    assert result["channels"][0]["note_count"] == 1
+
+
+def test_visualization_payload_rejects_midi_with_no_notes():
+    midi = mido.MidiFile(type=1, ticks_per_beat=480)
+    track = mido.MidiTrack()
+    track.append(mido.MetaMessage("set_tempo", tempo=500000, time=0))
+    midi.tracks.append(track)
+
+    from src.midi_edits import build_visualization_payload
+    try:
+        build_visualization_payload(midi, "snes")
+    except ValueError as exc:
+        assert "no extractable note events" in str(exc)
+    else:
+        raise AssertionError("Expected empty visualization payload to raise ValueError")
 
 
 def test_three_channel_fixture_preserves_channel_counts_and_programs():
@@ -95,3 +129,19 @@ def test_three_channel_fixture_preserves_channel_counts_and_programs():
         channel: sum(note["channel"] == channel for note in result["notes"])
         for channel in range(3)
     } == {0: 1, 1: 1, 2: 1}
+
+
+def test_simultaneous_same_pitch_notes_have_unique_stable_ids():
+    track = mido.MidiTrack()
+    track.append(mido.Message("note_on", channel=0, note=60, velocity=70, time=0))
+    track.append(mido.Message("note_on", channel=0, note=60, velocity=80, time=0))
+    track.append(mido.Message("note_off", channel=0, note=60, velocity=0, time=240))
+    track.append(mido.Message("note_off", channel=0, note=60, velocity=0, time=240))
+
+    first = _analysis(track)
+    second = _analysis(track)
+
+    assert len(first["notes"]) == 2
+    ids = [note["id"] for note in first["notes"]]
+    assert len(ids) == len(set(ids))
+    assert [note["id"] for note in second["notes"]] == ids

@@ -7,6 +7,57 @@
 export const API_BASE =
   import.meta.env.VITE_API_BASE ?? 'http://localhost:8001';
 
+import type { RemasterResult } from './ResultPanel';
+
+export interface UpdateNoteOperation {
+  type: 'update_note';
+  note_id: string;
+  pitch?: number;
+  velocity?: number;
+  start_tick?: number;
+  duration_ticks?: number;
+}
+
+export interface DeleteNoteOperation {
+  type: 'delete_note';
+  note_id: string;
+}
+
+export interface SetChannelProgramOperation {
+  type: 'set_channel_program';
+  channel: number;
+  program: number;
+}
+
+export type NoteEditOperation = UpdateNoteOperation | DeleteNoteOperation | SetChannelProgramOperation;
+export interface EditedRemasterResponse extends RemasterResult {
+  visualization: import('./SoundfontVisualizerPanel').VisualizationPayload;
+  logs?: Array<{ ts?: string; level?: string; step?: string; message?: string; debug?: string }>;
+}
+
+export function applyMidiEdits(requestId: string, operations: NoteEditOperation[]): Promise<EditedRemasterResponse> {
+  return request<EditedRemasterResponse>(`/api/remaster/${encodeURIComponent(requestId)}/edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operations }),
+    timeoutMs: 300000,
+  });
+}
+
+export interface MlJobSubmission {
+  job_id: string;
+}
+
+export interface MlJobStatus {
+  job_id: string;
+  status: 'queued' | 'running' | 'complete' | 'failed';
+  stage: 'validating' | 'loading_model' | 'rendering_prompt' | 'generating' | 'encoding' | 'complete';
+  progress: number;
+  message: string;
+  error: { detail?: string; code?: string; debug?: string; headline?: string; next_step?: string } | string | null;
+  result: (RemasterResult & { logs?: Array<{ ts?: string; level?: string; step?: string; message?: string; debug?: string }> }) | null;
+}
+
 export interface ErrorDisplay {
   headline: string;
   nextStep: string;
@@ -73,6 +124,54 @@ export class ApiError extends Error {
   }
 }
 
+export async function pollMlJob(
+  jobId: string,
+  signal: AbortSignal,
+  onUpdate: (job: MlJobStatus) => void,
+): Promise<NonNullable<MlJobStatus['result']>> {
+  while (!signal.aborted) {
+    let job: MlJobStatus;
+    try {
+      job = await request<MlJobStatus>(`/api/remaster_ml/jobs/${encodeURIComponent(jobId)}`, {
+        signal,
+        timeoutMs: 10000,
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.statusCode === 404) {
+        throw new ApiError('The ML job expired before the result was retrieved. Please run it again.');
+      }
+      throw error;
+    }
+    if (signal.aborted) throw new DOMException('Polling stopped', 'AbortError');
+    onUpdate(job);
+    if (job.status === 'complete') {
+      if (!job.result) throw new ApiError('The ML job completed without a result.');
+      return job.result;
+    }
+    if (job.status === 'failed') {
+      const error = job.error;
+      const detail = typeof error === 'string' ? error : error?.detail ?? job.message ?? 'ML generation failed.';
+      throw new ApiError(detail, detail, typeof error === 'object' && error ? error.debug : undefined,
+        undefined, undefined, typeof error === 'object' && error ? error.code : undefined,
+        typeof error === 'object' && error ? error.headline : undefined,
+        typeof error === 'object' && error ? error.next_step : undefined);
+    }
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        signal.removeEventListener('abort', abort);
+        resolve();
+      }, 1000);
+      const abort = () => {
+        clearTimeout(timer);
+        reject(new DOMException('Polling stopped', 'AbortError'));
+      };
+      signal.addEventListener('abort', abort, { once: true });
+      if (signal.aborted) abort();
+    });
+  }
+  throw new DOMException('Polling stopped', 'AbortError');
+}
+
 function getRequestId(response: Response): string | undefined {
   return (
     response.headers.get('x-request-id') ??
@@ -96,13 +195,16 @@ export async function request<T>(
   const { timeoutMs, ...init } = options;
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
   const controller = new AbortController();
+  const abortRequest = () => controller.abort();
+  if (init.signal?.aborted) controller.abort();
+  else init.signal?.addEventListener('abort', abortRequest, { once: true });
   const timeoutId =
     timeoutMs != null ? setTimeout(() => controller.abort(), timeoutMs) : undefined;
 
   try {
     const response = await fetch(url, {
       ...init,
-      signal: init.signal ?? controller.signal,
+      signal: controller.signal,
     });
     clearTimeout(timeoutId);
     const requestId = getRequestId(response);
@@ -206,6 +308,8 @@ export async function request<T>(
       throw new ApiError(err.message);
     }
     throw new ApiError('Request failed');
+  } finally {
+    init.signal?.removeEventListener('abort', abortRequest);
   }
 }
 

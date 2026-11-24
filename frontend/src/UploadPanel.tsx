@@ -134,6 +134,7 @@ export function UploadPanel({
           <button
             type="button"
             className={'mode-btn' + (mode === 'baseline' ? ' mode-btn-active' : '')}
+            aria-pressed={mode === 'baseline'}
             onClick={() => onModeChange('baseline')}
             disabled={loading}
             title={MODE_BASELINE_TOOLTIP}
@@ -143,6 +144,7 @@ export function UploadPanel({
           <button
             type="button"
             className={'mode-btn' + (mode === 'ml' ? ' mode-btn-active' : '')}
+            aria-pressed={mode === 'ml'}
             onClick={() => onModeChange('ml')}
             disabled={isMlDisabled}
             title={!mlAvailable ? mlUnavailableReason : MODE_ML_TOOLTIP}
@@ -167,6 +169,7 @@ export function UploadPanel({
               <button
                 key={sf.id}
                 type="button"
+                aria-pressed={soundfont === sf.id}
                 className={
                   'sf-pill' +
                   (soundfont === sf.id ? ' sf-pill-active' : '') +
@@ -229,10 +232,10 @@ export function UploadPanel({
         <div className="upload-group field">
           <span className="field__label">MusicGen input</span>
           <div className="mode-toggle">
-            <button type="button" className={'mode-btn' + (mlPromptMode === 'text' ? ' mode-btn-active' : '')} onClick={() => onMlPromptModeChange('text')} disabled={loading}>
+            <button type="button" className={'mode-btn' + (mlPromptMode === 'text' ? ' mode-btn-active' : '')} aria-pressed={mlPromptMode === 'text'} onClick={() => onMlPromptModeChange('text')} disabled={loading}>
               Text prompt
             </button>
-            <button type="button" className={'mode-btn' + (mlPromptMode === 'audio' ? ' mode-btn-active' : '')} onClick={() => onMlPromptModeChange('audio')} disabled={loading}>
+            <button type="button" className={'mode-btn' + (mlPromptMode === 'audio' ? ' mode-btn-active' : '')} aria-pressed={mlPromptMode === 'audio'} onClick={() => onMlPromptModeChange('audio')} disabled={loading}>
               MIDI audio prompt
             </button>
           </div>

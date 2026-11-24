@@ -16,12 +16,13 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 import mido
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 from src.audio_renderer import check_dependencies, get_tool_versions, render_midi_to_audio
 from src.instrument_mapper import get_channel_classifications, remap_midi
+from src.midi_editor import MidiEditError, edit_remapped_midi
 from src.midi_edits import (
     apply_channel_overrides,
     build_editor_analysis,
@@ -41,6 +42,7 @@ from src.log_events import log_event
 from src.soundfonts import VALID_IDS, get_soundfont_path, list_soundfonts as list_soundfonts_options
 
 logger = logging.getLogger(__name__)
+_midi_edit_lock = asyncio.Lock()
 
 @asynccontextmanager
 async def _lifespan(app):
@@ -462,8 +464,18 @@ async def remaster(
         try:
             if not output_path.exists():
                 raise FileNotFoundError(f"Remapped MIDI was not saved: {output_path}")
+            saved_remapped_midi = mido.MidiFile(str(output_path))
+            saved_note_count = sum(
+                1
+                for track in saved_remapped_midi.tracks
+                for msg in track
+                if getattr(msg, "type", None) == "note_on"
+                and getattr(msg, "velocity", 0) > 0
+            )
+            if saved_note_count == 0:
+                raise ValueError("Remapped MIDI contains zero note events")
             visualization = build_visualization_payload(
-                output_midi,
+                saved_remapped_midi,
                 soundfont_id=soundfont,
                 source="remapped",
             )
@@ -493,6 +505,8 @@ async def remaster(
             "input_filename": input_basename,
             "mode": "baseline",
             "style": soundfont,
+            "original_remapped_midi": output_filename,
+            "current_remapped_midi": output_filename,
             "source_style": source_style,
             "preserve_compatible_programs": preserve_compatible_programs,
             "source_request_id": request_id,
@@ -534,6 +548,102 @@ async def remaster(
                 debug=str(e),
             ),
         )
+
+
+def _edit_source_path(workspace: Path, metadata: dict, soundfont: str) -> Path:
+    filename = metadata.get("current_remapped_midi")
+    if filename is not None:
+        if (not isinstance(filename, str) or "/" in filename or "\\" in filename
+                or not filename.upper().startswith(f"{soundfont.upper()}REMAP_") or not filename.endswith(".mid")):
+            raise HTTPException(400, detail=error_body("Invalid remapped MIDI version.", code="INVALID_REMAP_VERSION"))
+        candidate = workspace / filename
+        if candidate.is_file():
+            return candidate
+        raise HTTPException(404, detail=error_body("Remapped MIDI version not found.", code="REMAPPED_MIDI_NOT_FOUND"))
+    input_filename = metadata.get("input_filename")
+    if isinstance(input_filename, str):
+        stem = Path(input_filename).stem
+        safe_stem = "".join(character for character in stem if character.isalnum() or character in "-_")[:200] or "song"
+        candidate = workspace / f"{soundfont.upper()}remap_{safe_stem}.mid"
+        if candidate.is_file():
+            return candidate
+    raise HTTPException(404, detail=error_body("Remapped MIDI file not found in workspace.", code="REMAPPED_MIDI_NOT_FOUND"))
+
+
+@app.post("/api/remaster/{request_id}/edit")
+async def edit_remaster(request_id: str, request: Request):
+    workspace = _get_workspace(request_id)
+    try:
+        body = await request.json()
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(400, detail=error_body("Request body must be valid JSON.", code="INVALID_EDIT_REQUEST"))
+    if not isinstance(body, dict) or set(body) != {"operations"}:
+        raise HTTPException(400, detail=error_body("Request body must contain an operations array.", code="INVALID_EDIT_REQUEST"))
+
+    async with _midi_edit_lock:
+        metadata = _get_workspace_metadata(workspace)
+        soundfont = _normalize_soundfont_id(metadata.get("style"))
+        source_path = _edit_source_path(workspace, metadata, soundfont)
+        try:
+            source_midi = await asyncio.to_thread(mido.MidiFile, str(source_path))
+            edited_midi = await asyncio.to_thread(edit_remapped_midi, source_midi, body["operations"])
+        except MidiEditError as exc:
+            raise HTTPException(400, detail=error_body(str(exc), code=exc.code))
+        except Exception as exc:
+            raise HTTPException(422, detail=error_body("Could not load or edit remapped MIDI.", code="REMAPPED_MIDI_INVALID", debug=str(exc)))
+
+        original_filename = metadata.get("original_remapped_midi") or source_path.name
+        if (not isinstance(original_filename, str) or "/" in original_filename or "\\" in original_filename
+                or not original_filename.upper().startswith(f"{soundfont.upper()}REMAP_") or not original_filename.endswith(".mid")):
+            raise HTTPException(400, detail=error_body("Invalid original MIDI version.", code="INVALID_REMAP_VERSION"))
+        original_path = workspace / original_filename
+        output_stem = "".join(character for character in original_path.stem if character.isascii() and (character.isalnum() or character in "-_"))
+        version = 1
+        while (workspace / f"{output_stem}_edited_{version}.mid").exists():
+            version += 1
+        output_path = workspace / f"{output_stem}_edited_{version}.mid"
+        try:
+            with output_path.open("xb") as output_file:
+                edited_midi.save(file=output_file)
+            saved_midi = await asyncio.to_thread(mido.MidiFile, str(output_path))
+            try:
+                visualization = build_visualization_payload(saved_midi, soundfont_id=soundfont, source="remapped")
+            except ValueError as exc:
+                if str(exc) != "MIDI contains no extractable note events":
+                    raise
+                visualization = {"source": "remapped", "soundfont": soundfont, "ticks_per_beat": saved_midi.ticks_per_beat,
+                                 "duration_seconds": float(saved_midi.length), "channels": [], "notes": []}
+        except Exception as exc:
+            output_path.unlink(missing_ok=True)
+            raise HTTPException(500, detail=error_body("Could not save edited MIDI.", code="EDIT_SAVE_FAILED", debug=str(exc)))
+
+        logs = [log_event("info", "edit", f"Applied {len(body['operations'])} MIDI edit operation(s)")]
+        audio_url = None
+        audio_error = None
+        soundfont_path = get_soundfont_path(soundfont)
+        if soundfont_path.exists():
+            try:
+                audio_path = await asyncio.to_thread(render_midi_to_audio, output_path, soundfont_path, "mp3", False, 0.35)
+                audio_url = f"/download/audio/{workspace.name}/{audio_path.name}?sf={soundfont}"
+                logs.append(log_event("info", "encode", "Edited MIDI rendered to MP3"))
+            except Exception as exc:
+                audio_error = str(exc) or "Audio rendering failed."
+                logs.append(log_event("warn", "encode", "Audio rendering failed", debug=str(exc)))
+        else:
+            audio_error = f"Soundfont not found: {soundfont_path.name}"
+            logs.append(log_event("warn", "encode", audio_error))
+
+        metadata.update({"original_remapped_midi": original_filename, "current_remapped_midi": output_path.name,
+                         "edit_version": version, "edit_source_midi": source_path.name})
+        (workspace / "metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+        classifications = {
+            str(channel["channel"]): {"program": channel["program"], "name": channel["instrument_name"]}
+            for channel in visualization["channels"]
+        }
+        return {"request_id": workspace.name, "midi_url": f"/download/midi/{workspace.name}/{output_path.name}",
+                "audio_url": audio_url, "audio_error": audio_error, "soundfont": soundfont,
+                "visualization": visualization, "classifications": classifications, "logs": logs,
+                "metadata_url": f"/download/metadata/{workspace.name}", "metadata": metadata}
 
 
 @app.get("/api/remaster/{request_id}/visualization")

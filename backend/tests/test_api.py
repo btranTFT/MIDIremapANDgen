@@ -543,3 +543,31 @@ class TestAPIRemaster:
         metadata = body.get("metadata") or {}
         assert metadata.get("source_style") == "gba"
         assert metadata.get("preserve_compatible_programs") is True
+
+    def test_remaster_empty_midi_returns_clear_visualization_diagnostic(self, tmp_path):
+        midi = mido.MidiFile(type=0, ticks_per_beat=480)
+        track = mido.MidiTrack()
+        track.append(mido.MetaMessage("set_tempo", tempo=500000, time=0))
+        track.append(mido.MetaMessage("end_of_track", time=0))
+        midi.tracks.append(track)
+        empty_path = tmp_path / "empty.mid"
+        midi.save(empty_path)
+
+        client = TestClient(app, raise_server_exceptions=True)
+        with open(empty_path, "rb") as f:
+            response = client.post(
+                "/api/remaster",
+                data={"soundfont": "snes"},
+                files={"file": ("empty.mid", f, "audio/midi")},
+            )
+
+        assert response.status_code == 200, response.text[:300]
+        body = response.json()
+        assert body["visualization"] is None
+        assert "zero note events" in (body["visualization_error"] or "")
+
+        visualization_response = client.get(
+            f"/api/remaster/{body['request_id']}/visualization"
+        )
+        assert visualization_response.status_code == 422
+        assert "REMAPPED_MIDI_EMPTY" in str(visualization_response.json())
